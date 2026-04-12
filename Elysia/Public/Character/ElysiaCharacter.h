@@ -25,6 +25,9 @@ public:
 	
 protected:
 	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USkeletalMeshComponent> Weapon;
+	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<USpringArmComponent> SpringArm;
 	

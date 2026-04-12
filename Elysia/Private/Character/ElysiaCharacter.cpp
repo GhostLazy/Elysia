@@ -11,8 +11,8 @@
 
 AElysiaCharacter::AElysiaCharacter()
 {
-	// 启用每帧更新
-	PrimaryActorTick.bCanEverTick = true;
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
+	Weapon->SetupAttachment(GetMesh(), FName("WeaponHandSocket"));
 	
 	// 设置弹簧臂角度
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
@@ -38,6 +38,9 @@ AElysiaCharacter::AElysiaCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+	
+	// 启用每帧更新
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void AElysiaCharacter::PossessedBy(AController* NewController)
