@@ -6,6 +6,7 @@
 #include "Character/ElysiaCharacterBase.h"
 #include "ElysiaCharacter.generated.h"
 
+class UWidgetComponent;
 /**
  * 
  */
@@ -25,7 +26,9 @@ public:
 	
 protected:
 	
-	UPROPERTY(EditAnywhere)
+	virtual void BeginPlay() override;
+	
+	UPROPERTY(EditAnywhere, Category = "Component")
 	TObjectPtr<USkeletalMeshComponent> Weapon;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
@@ -34,8 +37,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UCameraComponent> Camera;
 	
+	UPROPERTY(VisibleAnywhere, Category = "Component")
+	TObjectPtr<UWidgetComponent> HealthBar;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnAttributeChangeSignature OnHealthChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnAttributeChangeSignature OnMaxHealthChanged;
+	
 private:
 	
 	void InitAbilityActorInfo();
+	void InitHealthBar();
 	
 };

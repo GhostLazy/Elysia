@@ -2,17 +2,23 @@
 
 
 #include "Character/ElysiaCharacter.h"
-
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/ElysiaAttributeSet.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/ElysiaPlayerState.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Slate/SGameLayerManager.h"
+#include "UI/ElysiaUserWidget.h"
 
 AElysiaCharacter::AElysiaCharacter()
 {
+	// 设置武器附着与碰撞
 	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
 	Weapon->SetupAttachment(GetMesh(), FName("WeaponHandSocket"));
+	Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	// 设置弹簧臂角度
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
@@ -39,8 +45,16 @@ AElysiaCharacter::AElysiaCharacter()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 	
+	// 设置角色血条
+	HealthBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBar->SetupAttachment(RootComponent);
+	
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
 	// 启用每帧更新
 	PrimaryActorTick.bCanEverTick = true;
+	Tags.Add(FName("Player"));
 }
 
 void AElysiaCharacter::PossessedBy(AController* NewController)
@@ -57,6 +71,21 @@ void AElysiaCharacter::OnRep_PlayerState()
 	InitAbilityActorInfo();
 }
 
+void AElysiaCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (UElysiaUserWidget* ElysiaUserWidget = Cast<UElysiaUserWidget>(HealthBar->GetUserWidgetObject()))
+	{
+		ElysiaUserWidget->SetWidgetController(this);
+	}
+	
+	UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet);
+	
+	OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
+	OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
+}
+
 void AElysiaCharacter::InitAbilityActorInfo()
 {
 	if (AElysiaPlayerState* ElysiaPlayerState = Cast<AElysiaPlayerState>(GetPlayerState()))
@@ -65,4 +94,21 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		AbilitySystemComponent = ElysiaPlayerState->GetAbilitySystemComponent();
 		AttributeSet = ElysiaPlayerState->GetAttributeSet();
 	}
+	InitDefaultAttributes();
+	InitHealthBar();
+}
+
+void AElysiaCharacter::InitHealthBar()
+{
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthAttribute()).AddLambda(
+		[this](const FOnAttributeChangeData& Data)
+	{
+		OnHealthChanged.Broadcast(Data.NewValue);
+	});
+	
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetMaxHealthAttribute()).AddLambda(
+		[this](const FOnAttributeChangeData& Data)
+	{
+		OnMaxHealthChanged.Broadcast(Data.NewValue);
+	});
 }

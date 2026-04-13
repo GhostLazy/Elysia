@@ -4,6 +4,7 @@
 #include "Character/ElysiaEnemy.h"
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
+#include "Components/CapsuleComponent.h"
 
 AElysiaEnemy::AElysiaEnemy()
 {
@@ -12,6 +13,11 @@ AElysiaEnemy::AElysiaEnemy()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	
 	AttributeSet = CreateDefaultSubobject<UElysiaAttributeSet>("AttributeSet");
+	
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
+	Tags.Add(FName("Enemy"));
 }
 
 void AElysiaEnemy::BeginPlay()
@@ -19,4 +25,5 @@ void AElysiaEnemy::BeginPlay()
 	Super::BeginPlay();
 	
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	InitDefaultAttributes();
 }
