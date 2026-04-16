@@ -9,9 +9,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/ElysiaPlayerState.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
-#include "Slate/SGameLayerManager.h"
-#include "UI/ElysiaUserWidget.h"
 
 AElysiaCharacter::AElysiaCharacter()
 {
@@ -45,10 +42,7 @@ AElysiaCharacter::AElysiaCharacter()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 	
-	// 设置角色血条
-	HealthBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
-	HealthBar->SetupAttachment(RootComponent);
-	
+	// 角色与敌人不发生物理碰撞
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	
@@ -62,6 +56,7 @@ void AElysiaCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	
 	InitAbilityActorInfo();
+	AddCharacterAbilities();
 }
 
 void AElysiaCharacter::OnRep_PlayerState()
@@ -75,15 +70,11 @@ void AElysiaCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (UElysiaUserWidget* ElysiaUserWidget = Cast<UElysiaUserWidget>(HealthBar->GetUserWidgetObject()))
+	if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
 	{
-		ElysiaUserWidget->SetWidgetController(this);
+		OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
+		OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
 	}
-	
-	UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet);
-	
-	OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
-	OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
 }
 
 void AElysiaCharacter::InitAbilityActorInfo()
@@ -96,19 +87,4 @@ void AElysiaCharacter::InitAbilityActorInfo()
 	}
 	InitDefaultAttributes();
 	InitHealthBar();
-}
-
-void AElysiaCharacter::InitHealthBar()
-{
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthAttribute()).AddLambda(
-		[this](const FOnAttributeChangeData& Data)
-	{
-		OnHealthChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetMaxHealthAttribute()).AddLambda(
-		[this](const FOnAttributeChangeData& Data)
-	{
-		OnMaxHealthChanged.Broadcast(Data.NewValue);
-	});
 }

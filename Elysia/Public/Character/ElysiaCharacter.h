@@ -36,19 +36,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UCameraComponent> Camera;
-	
-	UPROPERTY(VisibleAnywhere, Category = "Component")
-	TObjectPtr<UWidgetComponent> HealthBar;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnAttributeChangeSignature OnHealthChanged;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnAttributeChangeSignature OnMaxHealthChanged;
-	
+
 private:
 	
 	void InitAbilityActorInfo();
-	void InitHealthBar();
 	
 };
