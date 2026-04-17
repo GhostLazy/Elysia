@@ -7,6 +7,14 @@
 #include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Actor/ElysiaProjectile.h"
 
+UElysiaNormalAttack::UElysiaNormalAttack()
+{
+	// 确保客户端可激活技能
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+}
+
 void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                           const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
                                           const FGameplayEventData* TriggerEventData)

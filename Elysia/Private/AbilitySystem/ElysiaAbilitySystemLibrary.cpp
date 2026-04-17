@@ -20,7 +20,7 @@ void UElysiaAbilitySystemLibrary::GetActorsWithInRadius(const UObject* WorldCont
 		
 		for (FOverlapResult& Overlap : Overlaps)
 		{
-			if (Overlap.GetActor()->Implements<UCombatInterface>())
+			if (Overlap.GetActor()->Implements<UCombatInterface>() && Overlap.GetActor()->ActorHasTag(FName("Enemy")))
 			{
 				OutActors.AddUnique(Overlap.GetActor());
 			}

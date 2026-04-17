@@ -56,7 +56,6 @@ void AElysiaCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	
 	InitAbilityActorInfo();
-	AddCharacterAbilities();
 }
 
 void AElysiaCharacter::OnRep_PlayerState()
@@ -70,6 +69,7 @@ void AElysiaCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// 服务器初始化血条
 	if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
 	{
 		OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
@@ -85,6 +85,15 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		AbilitySystemComponent = ElysiaPlayerState->GetAbilitySystemComponent();
 		AttributeSet = ElysiaPlayerState->GetAttributeSet();
 	}
+	
 	InitDefaultAttributes();
 	InitHealthBar();
+	
+	// 客户端初始化血条
+	if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
+	{
+		OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
+		OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
+	}
+	AddCharacterAbilities();
 }

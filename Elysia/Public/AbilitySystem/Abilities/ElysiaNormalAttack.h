@@ -16,15 +16,22 @@ class ELYSIA_API UElysiaNormalAttack : public UGameplayAbility
 {
 	GENERATED_BODY()
 	
+public:
+	
+	UElysiaNormalAttack();
+	
 protected:
 	
+	// 角色普攻在GAS初始化后即激活
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
 	
+	// 普攻行为：发射子弹
 	UFUNCTION(BlueprintCallable)
 	void SpawnProjectile(const AActor* TargetActor) const;
 	
+	// 当攻速属性发生变化时，重设普攻间隔
 	UFUNCTION()
 	void ResetTimer(float NewAttackSpeed);
 	
@@ -34,13 +41,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
 	
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY()
 	FOnAttributeChangeSignature OnAttackSpeedChanged;
 	
 	FTimerHandle SpawnProjectileTimer;
 	
 private:
 	
+	// 用作定时器回调函数，周期性执行普攻动作
 	void ExecuteAttack() const;
 	
 };
