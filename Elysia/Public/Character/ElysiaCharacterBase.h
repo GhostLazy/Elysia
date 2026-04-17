@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
+#include "Interface/CombatInterface.h"
 #include "ElysiaCharacterBase.generated.h"
 
 class UGameplayAbility;
@@ -18,7 +19,7 @@ class UCameraComponent;
 class USpringArmComponent;
 
 UCLASS()
-class ELYSIA_API AElysiaCharacterBase : public ACharacter, public IAbilitySystemInterface
+class ELYSIA_API AElysiaCharacterBase : public ACharacter, public IAbilitySystemInterface, public ICombatInterface
 {
 	GENERATED_BODY()
 

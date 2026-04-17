@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "Character/ElysiaCharacterBase.h"
 #include "ElysiaNormalAttack.generated.h"
 
 class AElysiaProjectile;
@@ -24,9 +25,22 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void SpawnProjectile(const AActor* TargetActor) const;
 	
+	UFUNCTION()
+	void ResetTimer(float NewAttackSpeed);
+	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AElysiaProjectile> ProjectileClass;
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnAttributeChangeSignature OnAttackSpeedChanged;
+	
+	FTimerHandle SpawnProjectileTimer;
+	
+private:
+	
+	void ExecuteAttack() const;
+	
 };

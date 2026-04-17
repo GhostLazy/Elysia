@@ -3,6 +3,8 @@
 
 #include "AbilitySystem/Abilities/ElysiaNormalAttack.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
+#include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Actor/ElysiaProjectile.h"
 
 void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -16,7 +18,14 @@ void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 		EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 	}
 	
-	K2_ActivateAbility();
+	OnAttackSpeedChanged.AddDynamic(this, &UElysiaNormalAttack::ResetTimer);
+	OnAttackSpeedChanged.Broadcast(GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
+	
+	GetAbilitySystemComponentFromActorInfo()->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute()).AddLambda(
+		[this](const FOnAttributeChangeData& Data)
+	{
+		OnAttackSpeedChanged.Broadcast(Data.NewValue);
+	});
 }
 
 void UElysiaNormalAttack::SpawnProjectile(const AActor* TargetActor) const
@@ -42,3 +51,27 @@ void UElysiaNormalAttack::SpawnProjectile(const AActor* TargetActor) const
 	// 生成子弹
 	Projectile->FinishSpawning(SpawnTransform);
 }
+
+void UElysiaNormalAttack::ExecuteAttack() const
+{
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(AvatarActor);
+	
+	if (IsValid(AvatarActor))
+	{
+		TArray<AActor*> OverlapActors;
+		const FVector SpawnLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
+		
+		UElysiaAbilitySystemLibrary::GetActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, SpawnLocation);
+		const AActor* TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, SpawnLocation);
+		SpawnProjectile(TargetActor);
+	}
+}
+
+void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
+{
+	const float Interval = 1 / FMath::Clamp(NewAttackSpeed, 0.1f, 10.f);
+	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::ExecuteAttack, Interval, true);
+}
+
