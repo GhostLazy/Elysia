@@ -27,9 +27,9 @@ protected:
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
 	
-	// 普攻行为：发射子弹
+	// 接受动画事件时，生成子弹
 	UFUNCTION(BlueprintCallable)
-	void SpawnProjectile(const AActor* TargetActor) const;
+	void SpawnProjectile(FGameplayEventData Payload);
 	
 	// 当攻速属性发生变化时，重设普攻间隔
 	UFUNCTION()
@@ -44,11 +44,19 @@ protected:
 	UPROPERTY()
 	FOnAttributeChangeSignature OnAttackSpeedChanged;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> AttackMontage;
+	
 	FTimerHandle SpawnProjectileTimer;
 	
 private:
 	
 	// 用作定时器回调函数，周期性执行普攻动作
-	void ExecuteAttack() const;
+	void PlayAttackMontage();
+	
+	UPROPERTY()
+	TObjectPtr<AActor> TargetActor;
+	
+	float Interval = 1.f;
 	
 };

@@ -33,6 +33,14 @@ public:
 	FGameplayTag Ability_Type_Skill;
 	FGameplayTag Ability_Type_Ultimate;
 	
+	// 角色技能
+	FGameplayTag Ability_Elysia_NormalAttack;
+	FGameplayTag Ability_Elysia_Skill;
+	FGameplayTag Ability_Elysia_Ultimate;
+	
+	// 动画事件
+	FGameplayTag Event_Montage_Elysia_NormalAttack;
+	
 private:
 	
 	static FElysiaGameplayTags GameplayTags;

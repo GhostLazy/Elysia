@@ -24,6 +24,14 @@ void FElysiaGameplayTags::InitNativeGameplayTags()
 	GameplayTags.Ability_Type_NormalAttack = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Type.NormalAttack"));
 	GameplayTags.Ability_Type_Skill = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Type.Skill"));
 	GameplayTags.Ability_Type_Ultimate = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Type.Ultimate"));
+	
+	// 角色技能
+	GameplayTags.Ability_Elysia_NormalAttack = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Elysia.NormalAttack"));
+	GameplayTags.Ability_Elysia_Skill = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Elysia.Skill"));
+	GameplayTags.Ability_Elysia_Ultimate = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Elysia.Ultimate"));
+	
+	// 动画事件
+	GameplayTags.Event_Montage_Elysia_NormalAttack = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Event.Montage.Elysia.NormalAttack"));
 }
 
 

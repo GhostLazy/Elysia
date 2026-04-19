@@ -3,9 +3,13 @@
 
 #include "AbilitySystem/Abilities/ElysiaNormalAttack.h"
 #include "AbilitySystemComponent.h"
+#include "ElysiaGameplayTags.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Actor/ElysiaProjectile.h"
+#include "Character/ElysiaCharacter.h"
 
 UElysiaNormalAttack::UElysiaNormalAttack()
 {
@@ -34,52 +38,62 @@ void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 	{
 		OnAttackSpeedChanged.Broadcast(Data.NewValue);
 	});
+	
+	UAbilityTask_WaitGameplayEvent* EventAttack = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FElysiaGameplayTags::Get().Event_Montage_Elysia_NormalAttack);
+	EventAttack->EventReceived.AddDynamic(this, &UElysiaNormalAttack::SpawnProjectile);
+	EventAttack->ReadyForActivation();
 }
 
-void UElysiaNormalAttack::SpawnProjectile(const AActor* TargetActor) const
+void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 {
 	// 客户端无权限执行生成子弹操作
 	if (!GetAvatarActorFromActorInfo()->HasAuthority()) return;
 	
-	// 设置子弹生成位置与方向
-	FTransform SpawnTransform;
-	const FVector SpawnLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
-	const FVector TargetLocation = TargetActor ? TargetActor->GetActorLocation() : FVector(0, 0, SpawnLocation.Z);
-	SpawnTransform.SetLocation(SpawnLocation);
-	const FRotator SpawnRotation = (TargetLocation - SpawnLocation).Rotation();
-	SpawnTransform.SetRotation(SpawnRotation.Quaternion());
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		// 设置子弹生成位置（武器尖端）与方向（瞄准怪物）
+		FTransform SpawnTransform;
+		const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
+		const FVector TargetLocation = TargetActor ? TargetActor->GetActorLocation() : FVector(0, 0, SpawnLocation.Z);
+		SpawnTransform.SetLocation(SpawnLocation);
+		const FRotator SpawnRotation = (TargetLocation - SpawnLocation).Rotation();
+		SpawnTransform.SetRotation(SpawnRotation.Quaternion());
+		
+		// 设置子弹伤害参数
+		AElysiaProjectile* Projectile = GetWorld()->SpawnActorDeferred<AElysiaProjectile>(
+			ProjectileClass, SpawnTransform, GetOwningActorFromActorInfo(), 
+			Cast<APawn>(GetOwningActorFromActorInfo()), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
+		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(DamageEffectClass, 1.f, EffectContext);
 	
-	// 设置子弹伤害参数
-	AElysiaProjectile* Projectile = GetWorld()->SpawnActorDeferred<AElysiaProjectile>(
-		ProjectileClass, SpawnTransform, GetOwningActorFromActorInfo(), 
-		Cast<APawn>(GetOwningActorFromActorInfo()), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-	const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
-	Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(DamageEffectClass, 1.f, EffectContext);
-	
-	// 生成子弹
-	Projectile->FinishSpawning(SpawnTransform);
+		// 生成子弹
+		Projectile->FinishSpawning(SpawnTransform);
+	}
 }
 
-void UElysiaNormalAttack::ExecuteAttack() const
+void UElysiaNormalAttack::PlayAttackMontage()
 {
-	AActor* AvatarActor = GetAvatarActorFromActorInfo();
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(AvatarActor);
-	
-	if (IsValid(AvatarActor))
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
 	{
+		TArray<AActor*> ActorsToIgnore;
+		ActorsToIgnore.Add(ElysiaCharacter);
+	
 		TArray<AActor*> OverlapActors;
-		const FVector SpawnLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
+		const FVector ActorLocation = ElysiaCharacter->GetActorLocation();
 		
-		UElysiaAbilitySystemLibrary::GetActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, SpawnLocation);
-		const AActor* TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, SpawnLocation);
-		SpawnProjectile(TargetActor);
+		UElysiaAbilitySystemLibrary::GetActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, ActorLocation);
+		TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, ActorLocation);
+		
+		ElysiaCharacter->RotateToTarget(TargetActor);
+		UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+			this, NAME_None, AttackMontage);
+		MontageTask->ReadyForActivation();
 	}
 }
 
 void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
 {
-	const float Interval = 1 / FMath::Clamp(NewAttackSpeed, 0.1f, 10.f);
-	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::ExecuteAttack, Interval, true);
+	Interval = 1 / FMath::Clamp(NewAttackSpeed, 0.1f, 10.f);
+	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::PlayAttackMontage, Interval, true);
 }
 
