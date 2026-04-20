@@ -27,15 +27,24 @@ void AElysiaPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME_CONDITION_NOTIFY(AElysiaPlayerState, XP, COND_None, REPNOTIFY_Always);
 }
 
-void AElysiaPlayerState::AddToLevel(int32 InLevel)
+void AElysiaPlayerState::SetLevel(int32 InLevel)
 {
-	Level += InLevel;
+	Level = InLevel;
 	OnLevelChanged.Broadcast(Level, true);
 }
 
 void AElysiaPlayerState::AddToXP(int32 InXP)
 {
 	XP += InXP;
+	
+	int32 NewLevel = 1; 
+	for (int32 i = 2; i <= MaxLevel; ++i)
+	{
+		if (XP >= LevelUpRequirement.GetValueAtLevel(i - 1)) NewLevel = i;
+		else break;
+	}
+	if (Level != NewLevel) SetLevel(NewLevel);
+	
 	OnXPChanged.Broadcast(XP);
 }
 

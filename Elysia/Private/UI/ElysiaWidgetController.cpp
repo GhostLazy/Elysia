@@ -18,20 +18,24 @@ void UElysiaWidgetController::BindCallbacksToDependencies()
 	if (AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
 		ElysiaPS->OnXPChanged.AddUObject(this, &UElysiaWidgetController::OnXPChanged);
-		ElysiaPS->OnLevelChanged.AddUObject(this, &UElysiaWidgetController::OnLevelChanged);
+		ElysiaPS->OnLevelChanged.AddLambda([this](int32 NewLevel, bool bLevelUp)
+		{
+			OnLevelTextChange.Broadcast(NewLevel, bLevelUp);
+		});
 	}
 }
 
-void UElysiaWidgetController::OnXPChanged(int32 NewXP)
+void UElysiaWidgetController::OnXPChanged(int32 NewXP) const
 {
 	if (const AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
 		const FScalableFloat LevelUpRequirement = ElysiaPS->GetLevelUpRequirement();
 		
 		int32 Level = 1; 
-		for (; Level <= ElysiaPS->GetMaxLevel(); ++Level)
+		for (int32 i = 2; i <= ElysiaPS->GetMaxLevel(); ++i)
 		{
-			if (NewXP < LevelUpRequirement.GetValueAtLevel(Level)) break;
+			if (NewXP >= LevelUpRequirement.GetValueAtLevel(i - 1)) Level = i;
+			else break;
 		}
 		
 		float Percent = 1.f;
@@ -39,11 +43,11 @@ void UElysiaWidgetController::OnXPChanged(int32 NewXP)
 		{
 			Percent = NewXP / LevelUpRequirement.GetValueAtLevel(Level);
 		}
-		else if (Level <= ElysiaPS->GetMaxLevel())
+		else if (NewXP <= LevelUpRequirement.GetValueAtLevel(ElysiaPS->GetMaxLevel()))
 		{
-			Percent = (NewXP - LevelUpRequirement.GetValueAtLevel(Level - 1)) / LevelUpRequirement.GetValueAtLevel(Level);
+			Percent = (NewXP - LevelUpRequirement.GetValueAtLevel(Level - 1)) / (LevelUpRequirement.GetValueAtLevel(Level) - LevelUpRequirement.GetValueAtLevel(Level - 1));
 		}
 		
-		UpdateProgressPercent(Percent);
+		OnXPBarPercentChanged.Broadcast(Percent);
 	}
 }

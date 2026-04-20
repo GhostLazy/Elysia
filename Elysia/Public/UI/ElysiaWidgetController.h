@@ -5,12 +5,15 @@
 #include "CoreMinimal.h"
 #include "ElysiaWidgetController.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FXPBarPercentChangedSignature, float, Percent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLevelTextChangeSignature, int32, NewLevel, bool, bLevelUp);
+
 class UAbilitySystemComponent;
 class UAttributeSet;
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable)
 class ELYSIA_API UElysiaWidgetController : public UObject
 {
 	GENERATED_BODY()
@@ -35,12 +38,12 @@ protected:
 	TObjectPtr<APlayerState> PlayerState;
 	
 	UFUNCTION()
-	void OnXPChanged(int32 NewXP);
+	void OnXPChanged(int32 NewXP) const;
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnLevelChanged(int32 NewLevel, bool bLevelUp);
+	UPROPERTY(BlueprintAssignable)
+	FXPBarPercentChangedSignature OnXPBarPercentChanged;
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void UpdateProgressPercent(const float Percent);
+	UPROPERTY(BlueprintAssignable)
+	FLevelTextChangeSignature OnLevelTextChange;
 	
 };

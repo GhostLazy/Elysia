@@ -37,7 +37,7 @@ public:
 	FORCEINLINE int32 GetXP() const { return XP; }
 	FORCEINLINE FScalableFloat GetLevelUpRequirement() const { return LevelUpRequirement; }
 	
-	void AddToLevel(int32 InLevel);
+	void SetLevel(int32 InLevel);
 	void AddToXP(int32 InXP);
 	
 protected:
