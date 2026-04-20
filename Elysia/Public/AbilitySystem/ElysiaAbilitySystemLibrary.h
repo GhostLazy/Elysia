@@ -16,10 +16,10 @@ class ELYSIA_API UElysiaAbilitySystemLibrary : public UBlueprintFunctionLibrary
 
 public:
 	
-	// 获取半径内的Actor
+	// 获取半径内存活的指定类型Actor
 	UFUNCTION(BlueprintCallable)
-	static void GetActorsWithInRadius(const UObject* WorldContextObject, TArray<AActor*>& OutActors,
-	                                  const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& Origin);
+	static void GetLiveActorsWithInRadius(const UObject* WorldContextObject, TArray<AActor*>& OutActors,
+	                                  const TArray<AActor*>& ActorsToIgnore, const float Radius, const FVector& Origin, const FName ActorTag);
 	
 	// 获取Actor列表中距离最近的Actor
 	UFUNCTION(BlueprintCallable)

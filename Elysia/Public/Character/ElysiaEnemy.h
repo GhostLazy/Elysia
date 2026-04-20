@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ScalableFloat.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "ElysiaEnemy.generated.h"
 
+class AElysiaXPBall;
 /**
  * 
  */
@@ -21,5 +23,15 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void Die() override;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AElysiaXPBall> XPBallClass;
+	
+	UPROPERTY(EditDefaultsOnly)
+	FScalableFloat XPRewards = FScalableFloat();
+	
+	UPROPERTY(EditDefaultsOnly)
+	int32 Level = 1;
 	
 };

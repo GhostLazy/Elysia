@@ -9,6 +9,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/ElysiaPlayerState.h"
 #include "Components/CapsuleComponent.h"
+#include "Elysia/Elysia.h"
+#include "Player/ElysiaPlayerController.h"
+#include "UI/ElysiaHUD.h"
 
 AElysiaCharacter::AElysiaCharacter()
 {
@@ -44,7 +47,10 @@ AElysiaCharacter::AElysiaCharacter()
 	bUseControllerRotationRoll = false;
 	
 	// 角色与敌人不发生物理碰撞
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionObjectType(ECC_Player);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Minion, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	
 	// 启用每帧更新
@@ -78,9 +84,29 @@ void AElysiaCharacter::BeginPlay()
 	}
 }
 
+
+void AElysiaCharacter::RotateToTarget(const AActor* TargetActor) const
+{
+	if (TargetActor == nullptr)
+	{
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	}
+	else if (AController* ElysiaController = GetController())
+	{
+		const FRotator TargetRot = (TargetActor->GetActorLocation() - GetActorLocation()).Rotation();
+		ElysiaController->SetControlRotation(TargetRot);
+	
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+}
+
+
 void AElysiaCharacter::InitAbilityActorInfo()
 {
-	if (AElysiaPlayerState* ElysiaPlayerState = Cast<AElysiaPlayerState>(GetPlayerState()))
+	AElysiaPlayerState* ElysiaPlayerState = Cast<AElysiaPlayerState>(GetPlayerState());
+	if (ElysiaPlayerState)
 	{
 		ElysiaPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(ElysiaPlayerState, this);
 		AbilitySystemComponent = ElysiaPlayerState->GetAbilitySystemComponent();
@@ -97,21 +123,12 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
 	}
 	AddCharacterAbilities();
-}
-
-void AElysiaCharacter::RotateToTarget(const AActor* TargetActor) const
-{
-	if (TargetActor == nullptr)
-	{
-		GetCharacterMovement()->bOrientRotationToMovement = true;
-		GetCharacterMovement()->bUseControllerDesiredRotation = false;
-	}
-	else if (AController* ElysiaController = GetController())
-	{
-		const FRotator TargetRot = (TargetActor->GetActorLocation() - GetActorLocation()).Rotation();
-		ElysiaController->SetControlRotation(TargetRot);
 	
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->bOrientRotationToMovement = false;
+	if (AElysiaPlayerController* ElysiaPlayerController = Cast<AElysiaPlayerController>(GetController()))
+	{
+		if (AElysiaHUD* ElysiaHUD = Cast<AElysiaHUD>(ElysiaPlayerController->GetHUD()))
+		{
+			ElysiaHUD->InitOverlay(ElysiaPlayerState, ElysiaPlayerController, AbilitySystemComponent, AttributeSet);
+		}
 	}
 }

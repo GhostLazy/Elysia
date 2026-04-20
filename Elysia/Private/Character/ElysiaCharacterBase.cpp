@@ -13,9 +13,6 @@
 
 AElysiaCharacterBase::AElysiaCharacterBase()
 {
-	// 角色对子弹不触发重叠事件
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Ignore);
-	
 	// 设置角色血条
 	HealthBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBar->SetupAttachment(RootComponent);

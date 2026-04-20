@@ -2,6 +2,9 @@
 
 
 #include "AbilitySystem/ElysiaAttributeSet.h"
+
+#include "GameplayEffectExtension.h"
+#include "Interface/CombatInterface.h"
 #include "Net/UnrealNetwork.h"
 
 void UElysiaAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -31,6 +34,14 @@ void UElysiaAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 void UElysiaAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
+	
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute() && GetHealth() <= 0.f)
+	{
+		if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(Data.Target.GetAvatarActor()))
+		{
+			CombatInterface->Die();
+		}
+	}
 }
 
 void UElysiaAttributeSet::OnRep_Health(const FGameplayAttributeData& PreviousHealth) const

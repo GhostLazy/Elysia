@@ -29,6 +29,13 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 	UAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	
+	/* 战斗接口 */
+	virtual void Die() override {}
+	virtual bool IsDead() const override { return bDead; }
+	virtual bool IsPlayer() const override { return ActorHasTag(FName("Player")); }
+	virtual bool IsEnemy() const override { return ActorHasTag(FName("Enemy")); }
+	virtual bool HasTag(const FName Tag) const override { return ActorHasTag(Tag); }
 
 protected:
 
@@ -67,6 +74,8 @@ protected:
 	
 	virtual void InitHealthBar();
 	void AddCharacterAbilities() const;
+	
+	bool bDead = false;
 
 private:
 	

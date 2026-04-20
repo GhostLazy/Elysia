@@ -81,7 +81,7 @@ void UElysiaNormalAttack::PlayAttackMontage()
 		TArray<AActor*> OverlapActors;
 		const FVector ActorLocation = ElysiaCharacter->GetActorLocation();
 		
-		UElysiaAbilitySystemLibrary::GetActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, ActorLocation);
+		UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, ActorLocation, FName("Enemy"));
 		TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, ActorLocation);
 		
 		ElysiaCharacter->RotateToTarget(TargetActor);

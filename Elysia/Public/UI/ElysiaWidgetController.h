@@ -5,10 +5,8 @@
 #include "CoreMinimal.h"
 #include "ElysiaWidgetController.generated.h"
 
-class AElysiaPlayerState;
-class AElysiaPlayerController;
-class UElysiaAttributeSet;
-class UElysiaAbilitySystemComponent;
+class UAbilitySystemComponent;
+class UAttributeSet;
 /**
  * 
  */
@@ -17,20 +15,32 @@ class ELYSIA_API UElysiaWidgetController : public UObject
 {
 	GENERATED_BODY()
 	
+public:
+	
+	void SetWidgetControllerParams(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	void BindCallbacksToDependencies();
+	
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
-	TObjectPtr<UElysiaAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
-	TObjectPtr<UElysiaAttributeSet> AttributeSet;
+	TObjectPtr<UAttributeSet> AttributeSet;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
-	TObjectPtr<AElysiaPlayerController> PlayerController;
+	TObjectPtr<APlayerController> PlayerController;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
-	TObjectPtr<AElysiaPlayerState> PlayerState;
+	TObjectPtr<APlayerState> PlayerState;
 	
-	virtual void BindCallbacksToDependencies();
+	UFUNCTION()
+	void OnXPChanged(int32 NewXP);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnLevelChanged(int32 NewLevel, bool bLevelUp);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void UpdateProgressPercent(const float Percent);
 	
 };

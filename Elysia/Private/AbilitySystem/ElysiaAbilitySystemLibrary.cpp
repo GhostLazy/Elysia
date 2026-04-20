@@ -2,11 +2,13 @@
 
 
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
+
+#include "Character/ElysiaEnemy.h"
 #include "Engine/OverlapResult.h"
 #include "Interface/CombatInterface.h"
 
-void UElysiaAbilitySystemLibrary::GetActorsWithInRadius(const UObject* WorldContextObject, TArray<AActor*>& OutActors,
-                                                        const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& Origin)
+void UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(const UObject* WorldContextObject, TArray<AActor*>& OutActors,
+                                                        const TArray<AActor*>& ActorsToIgnore, const float Radius, const FVector& Origin, const FName ActorTag)
 {
 	FCollisionQueryParams SphereParams;
 	SphereParams.AddIgnoredActors(ActorsToIgnore);
@@ -20,9 +22,12 @@ void UElysiaAbilitySystemLibrary::GetActorsWithInRadius(const UObject* WorldCont
 		
 		for (FOverlapResult& Overlap : Overlaps)
 		{
-			if (Overlap.GetActor()->Implements<UCombatInterface>() && Overlap.GetActor()->ActorHasTag(FName("Enemy")))
+			if (const ICombatInterface* CombatInterface = Cast<ICombatInterface>(Overlap.GetActor()))
 			{
-				OutActors.AddUnique(Overlap.GetActor());
+				if (!CombatInterface->IsDead() && CombatInterface->HasTag(ActorTag))
+				{
+					OutActors.AddUnique(Overlap.GetActor());
+				}
 			}
 		}
 	}
