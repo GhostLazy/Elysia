@@ -1,0 +1,357 @@
+// Copyright GhostLazy
+
+
+#include "Equipment/ElysiaEquipmentComponent.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
+#include "Algo/RandomShuffle.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
+#include "Net/UnrealNetwork.h"
+
+UElysiaEquipmentComponent::UElysiaEquipmentComponent()
+{
+	SetIsReplicatedByDefault(true);
+}
+
+void UElysiaEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UElysiaEquipmentComponent, OwnedEquipments);
+	DOREPLIFETIME(UElysiaEquipmentComponent, PendingChoices);
+	DOREPLIFETIME(UElysiaEquipmentComponent, PendingSelectionCount);
+}
+
+int32 UElysiaEquipmentComponent::GetEquipmentLevelById(FName EquipmentId) const
+{
+	if (const FElysiaEquipmentEntry* EquipmentEntry = FindOwnedEquipmentById(EquipmentId))
+	{
+		return EquipmentEntry->Level;
+	}
+
+	return 0;
+}
+
+bool UElysiaEquipmentComponent::IsEquipmentEvolvedById(FName EquipmentId) const
+{
+	if (const FElysiaEquipmentEntry* EquipmentEntry = FindOwnedEquipmentById(EquipmentId))
+	{
+		return EquipmentEntry->bEvolved;
+	}
+
+	return false;
+}
+
+int32 UElysiaEquipmentComponent::GetEquipmentLevelByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const
+{
+	if (const FElysiaEquipmentEntry* EquipmentEntry = FindOwnedEquipmentByAbilityClass(AbilityClass))
+	{
+		return EquipmentEntry->Level;
+	}
+
+	return 0;
+}
+
+bool UElysiaEquipmentComponent::IsEquipmentEvolvedByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const
+{
+	if (const FElysiaEquipmentEntry* EquipmentEntry = FindOwnedEquipmentByAbilityClass(AbilityClass))
+	{
+		return EquipmentEntry->bEvolved;
+	}
+
+	return false;
+}
+
+void UElysiaEquipmentComponent::QueueLevelUpSelections(int32 NumSelections)
+{
+	if (NumSelections <= 0 || !GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	PendingSelectionCount += NumSelections;
+	if (!HasPendingChoices())
+	{
+		RollNextChoices();
+	}
+}
+
+void UElysiaEquipmentComponent::SelectChoiceByIndex(int32 ChoiceIndex)
+{
+	if (!HasPendingChoices())
+	{
+		return;
+	}
+
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		ServerSelectChoiceByIndex(ChoiceIndex);
+		return;
+	}
+
+	if (!PendingChoices.IsValidIndex(ChoiceIndex))
+	{
+		return;
+	}
+
+	GrantEquipment(PendingChoices[ChoiceIndex].Equipment);
+
+	PendingChoices.Empty();
+	OnRep_PendingChoices();
+
+	PendingSelectionCount = FMath::Max(0, PendingSelectionCount - 1);
+	RollNextChoices();
+}
+
+void UElysiaEquipmentComponent::OnRep_OwnedEquipments()
+{
+	OnOwnedEquipmentsChanged.Broadcast();
+}
+
+void UElysiaEquipmentComponent::OnRep_PendingChoices()
+{
+	OnPendingChoicesChanged.Broadcast();
+}
+
+void UElysiaEquipmentComponent::ServerSelectChoiceByIndex_Implementation(int32 ChoiceIndex)
+{
+	SelectChoiceByIndex(ChoiceIndex);
+}
+
+void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition)
+{
+	if (EquipmentDefinition.EquipmentId.IsNone())
+	{
+		return;
+	}
+
+	FElysiaEquipmentEntry* OwnedEntry = FindOwnedEquipment(EquipmentDefinition.EquipmentId);
+	if (OwnedEntry == nullptr)
+	{
+		FElysiaEquipmentEntry NewEntry;
+		NewEntry.Equipment = EquipmentDefinition;
+		NewEntry.Level = 1;
+		OwnedEquipments.Add(NewEntry);
+		OwnedEntry = &OwnedEquipments.Last();
+	}
+	else
+	{
+		OwnedEntry->Level = FMath::Clamp(OwnedEntry->Level + 1, 1, FMath::Max(1, EquipmentDefinition.MaxLevel));
+	}
+
+	ApplyEquipmentEffects(*OwnedEntry);
+	EnsureWeaponAbilityGranted(EquipmentDefinition);
+	UpdateWeaponEvolutionStates();
+	OnRep_OwnedEquipments();
+}
+
+void UElysiaEquipmentComponent::RollNextChoices()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	if (PendingSelectionCount <= 0)
+	{
+		PendingChoices.Empty();
+		OnRep_PendingChoices();
+		return;
+	}
+
+	TArray<FElysiaEquipmentDefinition> Candidates;
+	TSet<FName> UniqueDefinitions;
+	const TArray<FElysiaEquipmentDefinition>& EquipmentDefinitions = EquipmentPool ? EquipmentPool->Equipments : TArray<FElysiaEquipmentDefinition>();
+	for (const FElysiaEquipmentDefinition& EquipmentDefinition : EquipmentDefinitions)
+	{
+		if (!EquipmentDefinition.EquipmentId.IsNone() && !UniqueDefinitions.Contains(EquipmentDefinition.EquipmentId) && CanOfferEquipment(EquipmentDefinition))
+		{
+			UniqueDefinitions.Add(EquipmentDefinition.EquipmentId);
+			Candidates.Add(EquipmentDefinition);
+		}
+	}
+
+	if (Candidates.IsEmpty())
+	{
+		PendingSelectionCount = 0;
+		PendingChoices.Empty();
+		OnRep_PendingChoices();
+		return;
+	}
+
+	Algo::RandomShuffle(Candidates);
+
+	const int32 NumChoices = FMath::Min(ChoiceCountPerLevel, Candidates.Num());
+	PendingChoices.Reset(NumChoices);
+	for (int32 Index = 0; Index < NumChoices; ++Index)
+	{
+		const FElysiaEquipmentDefinition& EquipmentDefinition = Candidates[Index];
+		const int32 OwnedIndex = FindOwnedEquipmentIndex(EquipmentDefinition.EquipmentId);
+		const int32 CurrentLevel = OwnedIndex == INDEX_NONE ? 0 : OwnedEquipments[OwnedIndex].Level;
+		const int32 MaxLevel = FMath::Max(1, EquipmentDefinition.MaxLevel);
+
+		FElysiaEquipmentChoice Choice;
+		Choice.Equipment = EquipmentDefinition;
+		Choice.EquipmentType = EquipmentDefinition.EquipmentType;
+		Choice.CurrentLevel = CurrentLevel;
+		Choice.NextLevel = FMath::Min(CurrentLevel + 1, MaxLevel);
+		Choice.MaxLevel = MaxLevel;
+		Choice.bAlreadyOwned = OwnedIndex != INDEX_NONE;
+		Choice.bWillEvolve = EquipmentDefinition.EquipmentType == EElysiaEquipmentType::Weapon
+			&& Choice.NextLevel >= MaxLevel
+			&& !EquipmentDefinition.RequiredPassiveEquipmentId.IsNone()
+			&& GetEquipmentLevelById(EquipmentDefinition.RequiredPassiveEquipmentId) > 0;
+
+		PendingChoices.Add(Choice);
+	}
+
+	OnRep_PendingChoices();
+}
+
+void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry)
+{
+	if (EquipmentEntry.Equipment.EquipmentId.IsNone() || EquipmentEntry.Equipment.EquipmentType != EElysiaEquipmentType::Passive || !EquipmentEntry.Equipment.GrantedEffectClass)
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent())
+	{
+		if (FActiveGameplayEffectHandle* ExistingEffectHandle = ActiveEffectHandles.Find(EquipmentEntry.Equipment.EquipmentId))
+		{
+			if (ExistingEffectHandle->IsValid())
+			{
+				AbilitySystemComponent->RemoveActiveGameplayEffect(*ExistingEffectHandle);
+			}
+		}
+
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+
+		const FGameplayEffectSpecHandle EffectSpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
+			EquipmentEntry.Equipment.GrantedEffectClass,
+			static_cast<float>(EquipmentEntry.Level),
+			EffectContext);
+		if (EffectSpecHandle.IsValid())
+		{
+			ActiveEffectHandles.FindOrAdd(EquipmentEntry.Equipment.EquipmentId) = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+		}
+	}
+}
+
+void UElysiaEquipmentComponent::EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition)
+{
+	if (EquipmentDefinition.EquipmentId.IsNone() || EquipmentDefinition.EquipmentType != EElysiaEquipmentType::Weapon || !EquipmentDefinition.GrantedAbilityClass)
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent())
+	{
+		for (const FGameplayAbilitySpec& AbilitySpec : AbilitySystemComponent->GetActivatableAbilities())
+		{
+			if (AbilitySpec.Ability && AbilitySpec.Ability->GetClass() == EquipmentDefinition.GrantedAbilityClass)
+			{
+				return;
+			}
+		}
+
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(EquipmentDefinition.GrantedAbilityClass, 1));
+	}
+}
+
+void UElysiaEquipmentComponent::UpdateWeaponEvolutionStates()
+{
+	bool bAnyEvolutionChanged = false;
+	for (FElysiaEquipmentEntry& EquipmentEntry : OwnedEquipments)
+	{
+		if (!EquipmentEntry.bEvolved && CanEvolve(EquipmentEntry))
+		{
+			EquipmentEntry.bEvolved = true;
+			bAnyEvolutionChanged = true;
+		}
+	}
+
+	if (bAnyEvolutionChanged)
+	{
+		OnRep_OwnedEquipments();
+	}
+}
+
+bool UElysiaEquipmentComponent::CanEvolve(const FElysiaEquipmentEntry& EquipmentEntry) const
+{
+	if (EquipmentEntry.Equipment.EquipmentId.IsNone() || EquipmentEntry.Equipment.EquipmentType != EElysiaEquipmentType::Weapon)
+	{
+		return false;
+	}
+
+	if (EquipmentEntry.Level < FMath::Max(1, EquipmentEntry.Equipment.MaxLevel))
+	{
+		return false;
+	}
+
+	if (EquipmentEntry.Equipment.RequiredPassiveEquipmentId.IsNone())
+	{
+		return false;
+	}
+
+	return GetEquipmentLevelById(EquipmentEntry.Equipment.RequiredPassiveEquipmentId) > 0;
+}
+
+FElysiaEquipmentEntry* UElysiaEquipmentComponent::FindOwnedEquipment(FName EquipmentId)
+{
+	const int32 OwnedIndex = FindOwnedEquipmentIndex(EquipmentId);
+	return OwnedEquipments.IsValidIndex(OwnedIndex) ? &OwnedEquipments[OwnedIndex] : nullptr;
+}
+
+const FElysiaEquipmentEntry* UElysiaEquipmentComponent::FindOwnedEquipmentById(FName EquipmentId) const
+{
+	return OwnedEquipments.FindByPredicate([EquipmentId](const FElysiaEquipmentEntry& Entry)
+	{
+		return Entry.Equipment.EquipmentId == EquipmentId;
+	});
+}
+
+const FElysiaEquipmentEntry* UElysiaEquipmentComponent::FindOwnedEquipmentByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const
+{
+	if (!AbilityClass)
+	{
+		return nullptr;
+	}
+
+	return OwnedEquipments.FindByPredicate([&AbilityClass](const FElysiaEquipmentEntry& Entry)
+	{
+		return Entry.Equipment.GrantedAbilityClass == AbilityClass;
+	});
+}
+
+int32 UElysiaEquipmentComponent::FindOwnedEquipmentIndex(FName EquipmentId) const
+{
+	return OwnedEquipments.IndexOfByPredicate([EquipmentId](const FElysiaEquipmentEntry& Entry)
+	{
+		return Entry.Equipment.EquipmentId == EquipmentId;
+	});
+}
+
+bool UElysiaEquipmentComponent::CanOfferEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const
+{
+	if (EquipmentDefinition.EquipmentId.IsNone())
+	{
+		return false;
+	}
+
+	const int32 OwnedIndex = FindOwnedEquipmentIndex(EquipmentDefinition.EquipmentId);
+	const int32 CurrentLevel = OwnedIndex == INDEX_NONE ? 0 : OwnedEquipments[OwnedIndex].Level;
+	return CurrentLevel < FMath::Max(1, EquipmentDefinition.MaxLevel);
+}
+
+UAbilitySystemComponent* UElysiaEquipmentComponent::GetAbilitySystemComponent() const
+{
+	if (const IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(GetOwner()))
+	{
+		return AbilitySystemInterface->GetAbilitySystemComponent();
+	}
+
+	return nullptr;
+}

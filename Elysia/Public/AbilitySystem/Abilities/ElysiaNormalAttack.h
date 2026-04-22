@@ -8,6 +8,7 @@
 #include "ElysiaNormalAttack.generated.h"
 
 class AElysiaProjectile;
+class UElysiaEquipmentComponent;
 /**
  * 
  */
@@ -34,6 +35,12 @@ protected:
 	// 当攻速属性发生变化时，重设普攻间隔
 	UFUNCTION()
 	void ResetTimer(float NewAttackSpeed);
+
+	int32 GetBaseProjectileCount() const;
+	int32 GetProjectileCount() const;
+	bool IsWeaponEvolved() const;
+	UElysiaEquipmentComponent* GetEquipmentComponent() const;
+	void FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley) const;
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AElysiaProjectile> ProjectileClass;
@@ -46,6 +53,15 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TArray<int32> ProjectileCountByLevel = { 1, 2, 3, 5 };
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
+	float BurstShotInterval = 0.08f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
+	float EvolvedPairSpacing = 18.f;
 	
 	FTimerHandle SpawnProjectileTimer;
 	

@@ -10,6 +10,7 @@
 
 class UAttributeSet;
 class UAbilitySystemComponent;
+class UElysiaEquipmentComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelValueChange, int32 /*StatValue*/, bool /*bLevelUp*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnXPValueChange, int32 /*StatValue*/);
@@ -28,6 +29,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 	UAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	UElysiaEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
 	
 	FOnLevelValueChange OnLevelChanged;
 	FOnXPValueChange OnXPChanged;
@@ -47,6 +49,9 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributeSet;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UElysiaEquipmentComponent> EquipmentComponent;
 	
 	UPROPERTY(EditDefaultsOnly)
 	FScalableFloat LevelUpRequirement = FScalableFloat();
@@ -63,9 +68,9 @@ private:
 	int32 XP = 0;
 	
 	UFUNCTION()
-	void OnRep_Level() const;
+	void OnRep_Level(int32 OldLevel);
 	
 	UFUNCTION()
-	void OnRep_XP() const;
+	void OnRep_XP();
 	
 };

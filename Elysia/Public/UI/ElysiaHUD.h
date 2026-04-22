@@ -8,6 +8,8 @@
 
 class UElysiaUserWidget;
 class UElysiaWidgetController;
+class UElysiaOverlayWidgetController;
+class UElysiaLevelUpWidgetController;
 class UAttributeSet;
 class UAbilitySystemComponent;
 /**
@@ -21,6 +23,8 @@ class ELYSIA_API AElysiaHUD : public AHUD
 public:
 	
 	void InitOverlay(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	UElysiaOverlayWidgetController* GetOverlayWidgetController(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	UElysiaLevelUpWidgetController* GetLevelUpWidgetController(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
 	
 protected:
 	
@@ -28,6 +32,15 @@ protected:
 	TSubclassOf<UElysiaUserWidget> OverlayWidgetClass;
 	
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UElysiaWidgetController> OverlayWidgetControllerClass;
+	TSubclassOf<UElysiaOverlayWidgetController> OverlayWidgetControllerClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UElysiaLevelUpWidgetController> LevelUpWidgetControllerClass;
+
+	UPROPERTY()
+	TObjectPtr<UElysiaOverlayWidgetController> OverlayWidgetController;
+
+	UPROPERTY()
+	TObjectPtr<UElysiaLevelUpWidgetController> LevelUpWidgetController;
 	
 };
