@@ -16,6 +16,7 @@ void UElysiaWidgetController::SetWidgetControllerParams(APlayerState* PS, APlaye
 
 void UElysiaWidgetController::BindCallbacksToDependencies()
 {
+	// 基类不绑定任何业务事件，交由子类实现
 }
 
 UElysiaEquipmentComponent* UElysiaWidgetController::GetEquipmentComponent() const

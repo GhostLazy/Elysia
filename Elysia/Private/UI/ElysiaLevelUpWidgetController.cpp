@@ -8,6 +8,7 @@ void UElysiaLevelUpWidgetController::BindCallbacksToDependencies()
 {
 	if (UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
 	{
+		// 升级窗口只关心装备候选与库存变化
 		EquipmentComponent->OnPendingChoicesChanged.RemoveAll(this);
 		EquipmentComponent->OnOwnedEquipmentsChanged.RemoveAll(this);
 		EquipmentComponent->OnPendingChoicesChanged.AddUObject(this, &UElysiaLevelUpWidgetController::HandleEquipmentChoicesChanged);
@@ -22,6 +23,7 @@ void UElysiaLevelUpWidgetController::SelectEquipmentByIndex(int32 ChoiceIndex)
 {
 	if (UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
 	{
+		// 将 UI 选择转发给装备组件，由服务端权威处理
 		EquipmentComponent->SelectChoiceByIndex(ChoiceIndex);
 	}
 }

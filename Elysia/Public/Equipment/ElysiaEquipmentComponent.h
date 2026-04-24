@@ -75,6 +75,7 @@ public:
 	int32 GetEquipmentLevelByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;
 	bool IsEquipmentEvolvedByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;
 
+	// 接口：每当角色升1级，执行一次装备选择
 	void QueueLevelUpSelections(int32 NumSelections);
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
@@ -124,5 +125,6 @@ private:
 	bool CanOfferEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
+	// 用于被动升级时，执行GE更新（删除&新增）操作
 	TMap<FName, FActiveGameplayEffectHandle> ActiveEffectHandles;
 };

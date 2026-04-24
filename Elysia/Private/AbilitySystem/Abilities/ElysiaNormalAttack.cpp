@@ -15,6 +15,7 @@
 
 UElysiaNormalAttack::UElysiaNormalAttack()
 {
+	// 确保客户端可激活技能
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
@@ -34,6 +35,7 @@ void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 	OnAttackSpeedChanged.AddDynamic(this, &UElysiaNormalAttack::ResetTimer);
 	OnAttackSpeedChanged.Broadcast(GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
 
+	// 当攻速属性发生变化时，重设普攻间隔
 	GetAbilitySystemComponentFromActorInfo()->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute()).AddLambda(
 		[this](const FOnAttributeChangeData& Data)
 	{
@@ -54,6 +56,7 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 
 	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
 	{
+		// 计算发射原点与朝向；所有连发都沿同一条发射线前进
 		const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
 		const FVector AimDirection = TargetActor
 			? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal()
@@ -63,6 +66,7 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 		const bool bEvolved = IsWeaponEvolved();
 		const int32 ArrowsPerVolley = bEvolved ? 2 : 1;
 
+		// 按武器等级执行 1/2/3/5 次连发；进化后每次连发改为并排双箭
 		for (int32 VolleyIndex = 0; VolleyIndex < BaseProjectileCount; ++VolleyIndex)
 		{
 			const float Delay = BurstShotInterval * static_cast<float>(VolleyIndex);
@@ -92,6 +96,7 @@ void UElysiaNormalAttack::PlayAttackMontage()
 		TArray<AActor*> OverlapActors;
 		const FVector ActorLocation = ElysiaCharacter->GetActorLocation();
 
+		// 索敌并朝向目标，随后播放普攻蒙太奇
 		UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, ActorLocation, FName("Enemy"));
 		TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, ActorLocation);
 
@@ -113,6 +118,7 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 	const FVector RightVector = SpawnRotation.RotateVector(FVector::RightVector);
 	const float PairHalfWidth = ArrowsPerVolley > 1 ? EvolvedPairSpacing * 0.5f : 0.f;
 
+	// 进化前只发 1 支；进化后同一轮改为并排双箭
 	for (int32 ArrowIndex = 0; ArrowIndex < ArrowsPerVolley; ++ArrowIndex)
 	{
 		const float PairOffset = ArrowsPerVolley > 1
@@ -124,6 +130,7 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 		SpawnTransform.SetLocation(FinalSpawnLocation);
 		SpawnTransform.SetRotation(SpawnRotation.Quaternion());
 
+		// 设置箭矢伤害参数并生成箭矢
 		AElysiaProjectile* Projectile = GetWorld()->SpawnActorDeferred<AElysiaProjectile>(
 			ProjectileClass,
 			SpawnTransform,
@@ -131,19 +138,33 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 			Cast<APawn>(GetOwningActorFromActorInfo()),
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
-		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(DamageEffectClass, 1.f, EffectContext);
+		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
+			DamageEffectClass,
+			static_cast<float>(GetWeaponAbilityLevel()),
+			EffectContext);
 		Projectile->FinishSpawning(SpawnTransform);
 	}
 }
 
-int32 UElysiaNormalAttack::GetBaseProjectileCount() const
+int32 UElysiaNormalAttack::GetWeaponAbilityLevel() const
 {
-	int32 WeaponLevel = 1;
-	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
+	const int32 AbilityLevel = GetAbilityLevel();
+	if (AbilityLevel > 0)
 	{
-		WeaponLevel = FMath::Max(1, EquipmentComponent->GetEquipmentLevelByAbilityClass(GetClass()));
+		return AbilityLevel;
 	}
 
+	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
+	{
+		return FMath::Max(1, EquipmentComponent->GetEquipmentLevelByAbilityClass(GetClass()));
+	}
+
+	return 1;
+}
+
+int32 UElysiaNormalAttack::GetBaseProjectileCount() const
+{
+	const int32 WeaponLevel = GetWeaponAbilityLevel();
 	const int32 LevelIndex = FMath::Clamp(WeaponLevel - 1, 0, ProjectileCountByLevel.Num() - 1);
 	return ProjectileCountByLevel.IsValidIndex(LevelIndex) ? ProjectileCountByLevel[LevelIndex] : 1;
 }

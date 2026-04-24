@@ -8,6 +8,7 @@ void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 {
 	if (AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
+		// Overlay 只关心常驻 HUD 数据：经验与等级
 		ElysiaPS->OnXPChanged.RemoveAll(this);
 		ElysiaPS->OnLevelChanged.RemoveAll(this);
 		ElysiaPS->OnXPChanged.AddUObject(this, &UElysiaOverlayWidgetController::OnXPChanged);
@@ -39,6 +40,7 @@ void UElysiaOverlayWidgetController::OnXPChanged(int32 NewXP) const
 		}
 		else if (NewXP <= LevelUpRequirement.GetValueAtLevel(ElysiaPS->GetMaxLevel()))
 		{
+			// 非 1 级时，按当前等级区间换算经验条百分比
 			const float CurrentLevelXP = LevelUpRequirement.GetValueAtLevel(Level);
 			const float PreviousLevelXP = LevelUpRequirement.GetValueAtLevel(Level - 1);
 			const float LevelRange = CurrentLevelXP - PreviousLevelXP;

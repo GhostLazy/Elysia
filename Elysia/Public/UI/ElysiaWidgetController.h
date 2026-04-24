@@ -16,7 +16,9 @@ class ELYSIA_API UElysiaWidgetController : public UObject
 
 public:
 
+	// 注入 WidgetController 需要使用的公共上下文
 	virtual void SetWidgetControllerParams(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	// 由子类重写，绑定各自需要监听的依赖
 	virtual void BindCallbacksToDependencies();
 
 protected:
@@ -33,5 +35,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
 	TObjectPtr<APlayerState> PlayerState;
 
+	// 常用辅助：从 PlayerState 上取装备组件
 	UElysiaEquipmentComponent* GetEquipmentComponent() const;
 };

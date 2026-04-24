@@ -26,9 +26,11 @@ protected:
 	UFUNCTION()
 	void HandleLevelChanged(int32 NewLevel, bool bLevelUp);
 
+	// 常驻 HUD：经验条百分比
 	UPROPERTY(BlueprintAssignable)
 	FXPBarPercentChangedSignature OnXPBarPercentChanged;
-
+	
+	// 常驻 HUD：等级文本变化
 	UPROPERTY(BlueprintAssignable)
 	FLevelTextChangeSignature OnLevelTextChange;
 };

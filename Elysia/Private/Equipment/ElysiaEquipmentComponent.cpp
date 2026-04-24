@@ -3,6 +3,7 @@
 
 #include "Equipment/ElysiaEquipmentComponent.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Algo/RandomShuffle.h"
 #include "GameplayAbilitySpec.h"
@@ -211,6 +212,7 @@ void UElysiaEquipmentComponent::RollNextChoices()
 
 void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry)
 {
+	// 当且仅当该装备为属性加成（被动）类时，该函数执行
 	if (EquipmentEntry.Equipment.EquipmentId.IsNone() || EquipmentEntry.Equipment.EquipmentType != EElysiaEquipmentType::Passive || !EquipmentEntry.Equipment.GrantedEffectClass)
 	{
 		return;
@@ -218,6 +220,7 @@ void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntr
 
 	if (UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent())
 	{
+		// 删除当前被动原有GE，以待升级
 		if (FActiveGameplayEffectHandle* ExistingEffectHandle = ActiveEffectHandles.Find(EquipmentEntry.Equipment.EquipmentId))
 		{
 			if (ExistingEffectHandle->IsValid())
@@ -233,6 +236,7 @@ void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntr
 			EquipmentEntry.Equipment.GrantedEffectClass,
 			static_cast<float>(EquipmentEntry.Level),
 			EffectContext);
+		// 新增当前被动升级后的GE
 		if (EffectSpecHandle.IsValid())
 		{
 			ActiveEffectHandles.FindOrAdd(EquipmentEntry.Equipment.EquipmentId) = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
@@ -242,8 +246,18 @@ void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntr
 
 void UElysiaEquipmentComponent::EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition)
 {
+	// 当且仅当该装备为武器时，该函数执行
 	if (EquipmentDefinition.EquipmentId.IsNone() || EquipmentDefinition.EquipmentType != EElysiaEquipmentType::Weapon || !EquipmentDefinition.GrantedAbilityClass)
 	{
+		return;
+	}
+
+	const FElysiaEquipmentEntry* OwnedEntry = FindOwnedEquipmentById(EquipmentDefinition.EquipmentId);
+	const int32 AbilityLevel = OwnedEntry ? FMath::Max(1, OwnedEntry->Level) : 1;
+
+	if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(GetAbilitySystemComponent()))
+	{
+		ElysiaASC->GrantOrUpdateAbilityLevel(EquipmentDefinition.GrantedAbilityClass, AbilityLevel);
 		return;
 	}
 
@@ -257,12 +271,13 @@ void UElysiaEquipmentComponent::EnsureWeaponAbilityGranted(const FElysiaEquipmen
 			}
 		}
 
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(EquipmentDefinition.GrantedAbilityClass, 1));
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(EquipmentDefinition.GrantedAbilityClass, AbilityLevel));
 	}
 }
 
 void UElysiaEquipmentComponent::UpdateWeaponEvolutionStates()
 {
+	// 该变量用于判断是否触发OwnedEquipments变化广播
 	bool bAnyEvolutionChanged = false;
 	for (FElysiaEquipmentEntry& EquipmentEntry : OwnedEquipments)
 	{
