@@ -59,4 +59,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment")
 	TArray<FElysiaEquipmentDefinition> Equipments;
+	
+	// 通过装备Id获取静态装备
+	const FElysiaEquipmentDefinition* FindEquipmentById(const FName EquipmentId) const;
+	
 };

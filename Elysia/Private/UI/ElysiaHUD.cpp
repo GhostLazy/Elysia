@@ -9,19 +9,14 @@
 
 void AElysiaHUD::InitOverlay(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS)
 {
-	UElysiaUserWidget* Widget = CreateWidget<UElysiaUserWidget>(GetWorld(), OverlayWidgetClass);
+	UElysiaUserWidget* OverlayWidget = CreateWidget<UElysiaUserWidget>(GetWorld(), OverlayWidgetClass);
+	UElysiaUserWidget* LevelUpWidget = CreateWidget<UElysiaUserWidget>(GetWorld(), LevelUpWidgetClass);
 	
-	UElysiaOverlayWidgetController* WidgetController = GetOverlayWidgetController(PS, PC, ASC, AS);
-	if (LevelUpWidgetControllerClass)
-	{
-		GetLevelUpWidgetController(PS, PC, ASC, AS);
-	}
-
-	WidgetController->SetWidgetControllerParams(PS, PC, ASC, AS);
-	WidgetController->BindCallbacksToDependencies();
-	
-	Widget->SetWidgetController(WidgetController);
-	Widget->AddToViewport();
+	OverlayWidget->SetWidgetController(GetOverlayWidgetController(PS, PC, ASC, AS));
+	LevelUpWidget->SetWidgetController(GetLevelUpWidgetController(PS, PC, ASC, AS));
+	OverlayWidget->AddToViewport();
+	LevelUpWidget->AddToViewport();
+	LevelUpWidget->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 UElysiaOverlayWidgetController* AElysiaHUD::GetOverlayWidgetController(APlayerState* PS, APlayerController* PC,
@@ -32,7 +27,12 @@ UElysiaOverlayWidgetController* AElysiaHUD::GetOverlayWidgetController(APlayerSt
 		OverlayWidgetController = NewObject<UElysiaOverlayWidgetController>(this, OverlayWidgetControllerClass);
 	}
 
-	OverlayWidgetController->SetWidgetControllerParams(PS, PC, ASC, AS);
+	if (OverlayWidgetController)
+	{
+		OverlayWidgetController->SetWidgetControllerParams(PS, PC, ASC, AS);
+		OverlayWidgetController->BindCallbacksToDependencies();
+	}
+	
 	return OverlayWidgetController;
 }
 

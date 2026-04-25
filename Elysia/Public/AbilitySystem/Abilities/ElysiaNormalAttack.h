@@ -75,8 +75,8 @@ protected:
 	
 private:
 	
-	// 用作定时器回调函数，周期性执行普攻动作
-	void PlayAttackMontage();
+	// 用作定时器回调函数，周期性寻找目标并执行普攻动作
+	void FindTargetAndPlayMontage();
 	
 	UPROPERTY()
 	TObjectPtr<AActor> TargetActor;

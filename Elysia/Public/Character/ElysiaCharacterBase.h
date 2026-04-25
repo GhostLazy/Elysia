@@ -60,9 +60,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
 	
-	UPROPERTY(EditDefaultsOnly)
-	TArray<TSubclassOf<UGameplayAbility>> StartupPassiveAbilities;
-	
 	UPROPERTY(BlueprintAssignable)
 	FOnAttributeChangeSignature OnHealthChanged;
 	
@@ -73,7 +70,7 @@ protected:
 	FOnAttributeChangeSignature OnMoveSpeedChanged;
 	
 	virtual void InitHealthBar();
-	void AddCharacterAbilities() const;
+	void InitCharacterAbilities() const;
 	
 	bool bDead = false;
 

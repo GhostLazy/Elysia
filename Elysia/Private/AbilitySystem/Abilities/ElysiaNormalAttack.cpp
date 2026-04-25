@@ -86,7 +86,7 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 	}
 }
 
-void UElysiaNormalAttack::PlayAttackMontage()
+void UElysiaNormalAttack::FindTargetAndPlayMontage()
 {
 	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
 	{
@@ -110,7 +110,7 @@ void UElysiaNormalAttack::PlayAttackMontage()
 void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
 {
 	Interval = 1 / FMath::Clamp(NewAttackSpeed, 0.1f, 10.f);
-	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::PlayAttackMontage, Interval, true);
+	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::FindTargetAndPlayMontage, Interval, true);
 }
 
 void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley) const

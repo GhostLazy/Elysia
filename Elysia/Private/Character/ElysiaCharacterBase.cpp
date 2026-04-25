@@ -73,13 +73,13 @@ void AElysiaCharacterBase::ApplyEffectToSelf(const TSubclassOf<UGameplayEffect>&
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 }
 
-void AElysiaCharacterBase::AddCharacterAbilities() const
+void AElysiaCharacterBase::InitCharacterAbilities() const
 {
 	if (!HasAuthority()) return;
 	
 	if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(AbilitySystemComponent))
 	{
 		ElysiaASC->AddCharacterAbilities(StartupAbilities);
-		ElysiaASC->AddCharacterPassiveAbilities(StartupPassiveAbilities);
+		// ElysiaASC->AddCharacterPassiveAbilities(StartupEquipments);
 	}
 }

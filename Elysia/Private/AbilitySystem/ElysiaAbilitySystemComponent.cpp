@@ -45,5 +45,6 @@ void UElysiaAbilitySystemComponent::GrantOrUpdateAbilityLevel(TSubclassOf<UGamep
 		}
 	}
 
-	GiveAbility(FGameplayAbilitySpec(AbilityClass, ClampedAbilityLevel));
+	FGameplayAbilitySpec Spec = FGameplayAbilitySpec(AbilityClass, ClampedAbilityLevel);
+	GiveAbilityAndActivateOnce(Spec);
 }

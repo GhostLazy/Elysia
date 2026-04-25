@@ -47,10 +47,15 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UMotionWarpingComponent> MotionWarpingComponent;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TArray<FName> StartupEquipmentsId;
 
 private:
 	
 	// 角色ASC初始化
 	void InitAbilityActorInfo();
+	
+	void InitCharacterEquipments();
 	
 };

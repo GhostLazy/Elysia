@@ -32,6 +32,9 @@ protected:
 	TSubclassOf<UElysiaUserWidget> OverlayWidgetClass;
 	
 	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UElysiaUserWidget> LevelUpWidgetClass;
+	
+	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UElysiaOverlayWidgetController> OverlayWidgetControllerClass;
 
 	UPROPERTY(EditDefaultsOnly)

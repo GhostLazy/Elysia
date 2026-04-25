@@ -69,6 +69,7 @@ public:
 
 	const TArray<FElysiaEquipmentEntry>& GetOwnedEquipments() const { return OwnedEquipments; }
 	const TArray<FElysiaEquipmentChoice>& GetPendingChoices() const { return PendingChoices; }
+	const UElysiaEquipmentPoolDataAsset* GetEquipmentPool() const { return EquipmentPool; }
 	bool HasPendingChoices() const { return PendingChoices.Num() > 0; }
 	int32 GetEquipmentLevelById(FName EquipmentId) const;
 	bool IsEquipmentEvolvedById(FName EquipmentId) const;
@@ -77,6 +78,9 @@ public:
 
 	// 接口：每当角色升1级，执行一次装备选择
 	void QueueLevelUpSelections(int32 NumSelections);
+	
+	// 赋予角色装备
+	void GrantEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition);
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void SelectChoiceByIndex(int32 ChoiceIndex);
@@ -111,8 +115,7 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSelectChoiceByIndex(int32 ChoiceIndex);
-
-	void GrantEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition);
+	
 	void RollNextChoices();
 	void ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry);
 	void EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition);

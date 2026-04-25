@@ -10,6 +10,8 @@
 #include "Player/ElysiaPlayerState.h"
 #include "Components/CapsuleComponent.h"
 #include "Elysia/Elysia.h"
+#include "Equipment/ElysiaEquipmentComponent.h"
+#include "Equipment/ElysiaEquipmentDefinition.h"
 #include "Player/ElysiaPlayerController.h"
 #include "UI/ElysiaHUD.h"
 
@@ -122,13 +124,29 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
 		OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
 	}
-	AddCharacterAbilities();
 	
 	if (AElysiaPlayerController* ElysiaPlayerController = Cast<AElysiaPlayerController>(GetController()))
 	{
 		if (AElysiaHUD* ElysiaHUD = Cast<AElysiaHUD>(ElysiaPlayerController->GetHUD()))
 		{
 			ElysiaHUD->InitOverlay(ElysiaPlayerState, ElysiaPlayerController, AbilitySystemComponent, AttributeSet);
+		}
+	}
+	InitCharacterAbilities();
+	InitCharacterEquipments();
+}
+
+void AElysiaCharacter::InitCharacterEquipments()
+{
+	if (AElysiaPlayerState* ElysiaPlayerState = Cast<AElysiaPlayerState>(GetPlayerState()))
+	{
+		UElysiaEquipmentComponent* EquipmentComponent = ElysiaPlayerState->GetEquipmentComponent();
+		const UElysiaEquipmentPoolDataAsset* EquipmentPool = EquipmentComponent->GetEquipmentPool();
+		
+		for (const FName EquipmentId : StartupEquipmentsId)
+		{
+			const FElysiaEquipmentDefinition* Equipment = EquipmentPool->FindEquipmentById(EquipmentId);
+			EquipmentComponent->GrantEquipment(*Equipment);
 		}
 	}
 }

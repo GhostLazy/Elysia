@@ -6,7 +6,6 @@
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Algo/RandomShuffle.h"
-#include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
 #include "Net/UnrealNetwork.h"
 
@@ -258,20 +257,6 @@ void UElysiaEquipmentComponent::EnsureWeaponAbilityGranted(const FElysiaEquipmen
 	if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(GetAbilitySystemComponent()))
 	{
 		ElysiaASC->GrantOrUpdateAbilityLevel(EquipmentDefinition.GrantedAbilityClass, AbilityLevel);
-		return;
-	}
-
-	if (UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent())
-	{
-		for (const FGameplayAbilitySpec& AbilitySpec : AbilitySystemComponent->GetActivatableAbilities())
-		{
-			if (AbilitySpec.Ability && AbilitySpec.Ability->GetClass() == EquipmentDefinition.GrantedAbilityClass)
-			{
-				return;
-			}
-		}
-
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(EquipmentDefinition.GrantedAbilityClass, AbilityLevel));
 	}
 }
 
