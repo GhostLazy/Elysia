@@ -59,7 +59,7 @@ private:
 	void StartContactDamage();
 	void StopContactDamage();
 	void ApplyContactDamage();
-	bool IsValidDamageTargetActor(AActor* Actor) const;
+	static bool IsValidDamageTargetActor(AActor* Actor);
 
 	TSet<TWeakObjectPtr<AActor>> CurrentOverlappingPlayers;
 	FTimerHandle ContactDamageTimerHandle;

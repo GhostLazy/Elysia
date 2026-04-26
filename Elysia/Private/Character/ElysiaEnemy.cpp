@@ -24,6 +24,12 @@ AElysiaEnemy::AElysiaEnemy()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	
 	AttributeSet = CreateDefaultSubobject<UElysiaAttributeSet>("AttributeSet");
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
 	
 	// 两套碰撞逻辑，分别处理
 	GetCapsuleComponent()->SetCollisionObjectType(ECC_Minion);
@@ -135,7 +141,6 @@ void AElysiaEnemy::StartContactDamage()
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(ContactDamageTimerHandle))
 	{
-		ApplyContactDamage();
 		GetWorld()->GetTimerManager().SetTimer(
 			ContactDamageTimerHandle,
 			this,
@@ -198,7 +203,7 @@ void AElysiaEnemy::ApplyContactDamage()
 	}
 }
 
-bool AElysiaEnemy::IsValidDamageTargetActor(AActor* Actor) const
+bool AElysiaEnemy::IsValidDamageTargetActor(AActor* Actor)
 {
 	if (!IsValid(Actor))
 	{

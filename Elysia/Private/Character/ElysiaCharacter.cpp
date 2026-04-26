@@ -51,6 +51,7 @@ AElysiaCharacter::AElysiaCharacter()
 	// 角色与敌人不发生物理碰撞
 	GetCapsuleComponent()->SetCollisionObjectType(ECC_Player);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Minion, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);

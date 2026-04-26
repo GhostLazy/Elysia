@@ -25,9 +25,6 @@ public:
 
 protected:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|StateTree")
-	TObjectPtr<UStateTree> MinionStateTree = nullptr;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.05"))
 	float BehaviorTickInterval = 0.2f;
 
@@ -35,7 +32,7 @@ protected:
 	float SearchRadius = 2000.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.0"))
-	float AcceptanceRadius = 120.f;
+	float AcceptanceRadius = 5.f;
 
 	AActor* FindClosestPlayerInRange() const;
 	void UpdateBehavior();

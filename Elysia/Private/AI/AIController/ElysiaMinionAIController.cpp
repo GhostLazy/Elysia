@@ -79,8 +79,7 @@ void AElysiaMinionAIController::UpdateBehavior()
 
 	if (AActor* CurrentTarget = GetTargetActor())
 	{
-		SetFocus(CurrentTarget, EAIFocusPriority::Gameplay);
-		MoveToActor(CurrentTarget, AcceptanceRadius, true, true, true, 0, true);
+		MoveToActor(CurrentTarget, AcceptanceRadius, false, true, true, 0, true);
 		return;
 	}
 
