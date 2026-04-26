@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
 #include "ScalableFloat.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "ElysiaEnemy.generated.h"
@@ -43,9 +44,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TSubclassOf<UGameplayEffect> ContactDamageEffectClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0.05"))
-	float ContactDamageInterval = 1.f;
-
 private:
 
 	UFUNCTION()
@@ -56,12 +54,12 @@ private:
 	void HandlePlayerOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void StartContactDamage();
-	void StopContactDamage();
-	void ApplyContactDamage();
+	void ApplyContactDamageEffectToTarget(AActor* DamageTarget);
+	void RemoveContactDamageEffectFromTarget(AActor* DamageTarget);
+	void ClearActiveContactDamageEffects();
 	static bool IsValidDamageTargetActor(AActor* Actor);
 
 	TSet<TWeakObjectPtr<AActor>> CurrentOverlappingPlayers;
-	FTimerHandle ContactDamageTimerHandle;
+	TMap<TWeakObjectPtr<AActor>, FActiveGameplayEffectHandle> ActiveContactDamageEffects;
 	
 };

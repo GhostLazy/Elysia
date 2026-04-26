@@ -39,7 +39,7 @@ AElysiaCharacter::AElysiaCharacter()
 	// 角色面向移动方向
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 800.0f, 0.0f);
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 400.0f, 0.0f);
 	// 角色运动限制在平面
 	GetCharacterMovement()->bConstrainToPlane = true;
 	GetCharacterMovement()->bSnapToPlaneAtStart = true;

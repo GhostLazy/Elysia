@@ -15,7 +15,6 @@
 #include "Elysia/Elysia.h"
 #include "GameFramework/Character.h"
 #include "Interface/CombatInterface.h"
-#include "TimerManager.h"
 
 AElysiaEnemy::AElysiaEnemy()
 {
@@ -69,7 +68,7 @@ void AElysiaEnemy::BeginPlay()
 void AElysiaEnemy::Die()
 {
 	bDead = true;
-	StopContactDamage();
+	ClearActiveContactDamageEffects();
 	CurrentOverlappingPlayers.Empty();
 
 	if (AElysiaAIControllerBase* EnemyController = Cast<AElysiaAIControllerBase>(GetController()))
@@ -114,7 +113,7 @@ void AElysiaEnemy::HandlePlayerOverlapBegin(UPrimitiveComponent* OverlappedCompo
 	}
 
 	CurrentOverlappingPlayers.Add(TWeakObjectPtr<AActor>(OtherActor));
-	StartContactDamage();
+	ApplyContactDamageEffectToTarget(OtherActor);
 }
 
 void AElysiaEnemy::HandlePlayerOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -126,80 +125,76 @@ void AElysiaEnemy::HandlePlayerOverlapEnd(UPrimitiveComponent* OverlappedCompone
 	}
 
 	CurrentOverlappingPlayers.Remove(TWeakObjectPtr<AActor>(OtherActor));
-	if (CurrentOverlappingPlayers.IsEmpty())
-	{
-		StopContactDamage();
-	}
+	RemoveContactDamageEffectFromTarget(OtherActor);
 }
 
-void AElysiaEnemy::StartContactDamage()
+void AElysiaEnemy::ApplyContactDamageEffectToTarget(AActor* DamageTarget)
 {
-	if (!HasAuthority() || !GetWorld() || CurrentOverlappingPlayers.IsEmpty())
+	if (!HasAuthority() || !AbilitySystemComponent || !ContactDamageEffectClass || !IsValidDamageTargetActor(DamageTarget))
 	{
 		return;
 	}
 
-	if (!GetWorld()->GetTimerManager().IsTimerActive(ContactDamageTimerHandle))
+	const TWeakObjectPtr<AActor> WeakTarget(DamageTarget);
+	if (const FActiveGameplayEffectHandle* ExistingHandle = ActiveContactDamageEffects.Find(WeakTarget))
 	{
-		GetWorld()->GetTimerManager().SetTimer(
-			ContactDamageTimerHandle,
-			this,
-			&AElysiaEnemy::ApplyContactDamage,
-			FMath::Max(0.05f, ContactDamageInterval),
-			true);
-	}
-}
-
-void AElysiaEnemy::StopContactDamage()
-{
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(ContactDamageTimerHandle);
-	}
-}
-
-void AElysiaEnemy::ApplyContactDamage()
-{
-	if (!HasAuthority() || !AbilitySystemComponent || !ContactDamageEffectClass)
-	{
-		return;
-	}
-
-	TArray<TWeakObjectPtr<AActor>> ActorsToRemove;
-	for (const TWeakObjectPtr<AActor>& WeakActor : CurrentOverlappingPlayers)
-	{
-		AActor* DamageTarget = WeakActor.Get();
-		if (!IsValidDamageTargetActor(DamageTarget))
+		if (ExistingHandle->IsValid())
 		{
-			ActorsToRemove.Add(WeakActor);
-			continue;
+			return;
 		}
+	}
 
-		if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(DamageTarget))
+	if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(DamageTarget))
+	{
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+
+		const FGameplayEffectSpecHandle EffectSpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
+			ContactDamageEffectClass,
+			static_cast<float>(FMath::Max(1, Level)),
+			EffectContext);
+
+		if (EffectSpecHandle.IsValid())
 		{
-			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-			EffectContext.AddSourceObject(this);
-
-			const FGameplayEffectSpecHandle EffectSpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
-				ContactDamageEffectClass,
-				static_cast<float>(FMath::Max(1, Level)),
-				EffectContext);
-
-			if (EffectSpecHandle.IsValid())
+			const FActiveGameplayEffectHandle AppliedHandle = TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+			if (AppliedHandle.IsValid())
 			{
-				TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+				ActiveContactDamageEffects.FindOrAdd(WeakTarget) = AppliedHandle;
 			}
 		}
 	}
+}
 
-	for (const TWeakObjectPtr<AActor>& WeakActor : ActorsToRemove)
+void AElysiaEnemy::RemoveContactDamageEffectFromTarget(AActor* DamageTarget)
+{
+	if (!HasAuthority() || !DamageTarget)
 	{
-		CurrentOverlappingPlayers.Remove(WeakActor);
+		return;
 	}
 
-	if (CurrentOverlappingPlayers.IsEmpty())
+	const TWeakObjectPtr<AActor> WeakTarget(DamageTarget);
+	const FActiveGameplayEffectHandle ActiveHandle = ActiveContactDamageEffects.FindRef(WeakTarget);
+	if (!ActiveHandle.IsValid())
 	{
-		StopContactDamage();
+		ActiveContactDamageEffects.Remove(WeakTarget);
+		return;
+	}
+
+	if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(DamageTarget))
+	{
+		TargetASC->RemoveActiveGameplayEffect(ActiveHandle);
+	}
+
+	ActiveContactDamageEffects.Remove(WeakTarget);
+}
+
+void AElysiaEnemy::ClearActiveContactDamageEffects()
+{
+	TArray<TWeakObjectPtr<AActor>> ActiveTargets;
+	ActiveContactDamageEffects.GetKeys(ActiveTargets);
+	for (const TWeakObjectPtr<AActor>& WeakTarget : ActiveTargets)
+	{
+		RemoveContactDamageEffectFromTarget(WeakTarget.Get());
 	}
 }
 

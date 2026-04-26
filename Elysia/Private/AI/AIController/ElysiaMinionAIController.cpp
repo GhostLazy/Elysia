@@ -79,7 +79,7 @@ void AElysiaMinionAIController::UpdateBehavior()
 
 	if (AActor* CurrentTarget = GetTargetActor())
 	{
-		MoveToActor(CurrentTarget, AcceptanceRadius, false, true, true, 0, true);
+		MoveToActor(CurrentTarget, AcceptanceRadius, true, true, true, nullptr, true);
 		return;
 	}
 
