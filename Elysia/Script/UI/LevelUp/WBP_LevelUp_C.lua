@@ -9,6 +9,11 @@
 ---@type WBP_LevelUp_C
 local M = UnLua.Class()
 
+function M:ShouldPauseForLevelUp()
+    local World = self:GetWorld()
+    return World and World:GetNetMode() == UE.ENetMode.NM_Standalone
+end
+
 function M:WidgetControllerSet()
     self.LevelUpWidgetController = UE.UElysiaLevelUpWidgetController.Cast(self.WidgetController, UE.UElysiaLevelUpWidgetController.StaticClass())
     self.LevelUpWidgetController.OnEquipmentChoicesChanged:Add(self, self.HandleEquipmentChoicesChange)
@@ -33,7 +38,10 @@ function M:EnterLevelUpState()
         UE.UWidgetBlueprintLibrary.SetInputMode_UIOnlyEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, true)
     end
 
-    UE.UGameplayStatics.SetGamePaused(self, true)
+    self.bPausedForLevelUp = self:ShouldPauseForLevelUp()
+    if self.bPausedForLevelUp then
+        UE.UGameplayStatics.SetGamePaused(self, true)
+    end
     self.bLevelUpStateActive = true
 end
 
@@ -43,13 +51,16 @@ function M:ExitLevelUpState()
     end
 
     local PlayerController = self:GetOwningPlayer()
-    UE.UGameplayStatics.SetGamePaused(self, false)
+    if self.bPausedForLevelUp then
+        UE.UGameplayStatics.SetGamePaused(self, false)
+    end
 
     if PlayerController then
         PlayerController:ResetIgnoreMoveInput()
         UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, false, true)
     end
 
+    self.bPausedForLevelUp = false
     self.bLevelUpStateActive = false
 end
 
