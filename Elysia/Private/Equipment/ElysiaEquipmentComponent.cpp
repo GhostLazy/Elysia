@@ -77,6 +77,41 @@ void UElysiaEquipmentComponent::QueueLevelUpSelections(int32 NumSelections)
 	}
 }
 
+void UElysiaEquipmentComponent::GrantStartupEquipmentsOnce(const TArray<FName>& StartupEquipmentIds)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || bStartupEquipmentsGranted)
+	{
+		return;
+	}
+
+	// 开局装备属于权威状态，只允许服务端成功初始化一次
+	bStartupEquipmentsGranted = true;
+
+	if (!EquipmentPool)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s failed to grant startup equipments because EquipmentPool is null."), *GetName());
+		return;
+	}
+
+	for (const FName EquipmentId : StartupEquipmentIds)
+	{
+		if (EquipmentId.IsNone())
+		{
+			continue;
+		}
+
+		// 所有开局装备都必须来自统一的装备池，避免定义分叉
+		const FElysiaEquipmentDefinition* EquipmentDefinition = EquipmentPool->FindEquipmentById(EquipmentId);
+		if (!EquipmentDefinition)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s failed to find startup equipment definition for '%s'."), *GetName(), *EquipmentId.ToString());
+			continue;
+		}
+
+		GrantEquipment(*EquipmentDefinition);
+	}
+}
+
 void UElysiaEquipmentComponent::SelectChoiceByIndex(int32 ChoiceIndex)
 {
 	if (!HasPendingChoices())
@@ -121,7 +156,7 @@ void UElysiaEquipmentComponent::ServerSelectChoiceByIndex_Implementation(int32 C
 
 void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition)
 {
-	if (EquipmentDefinition.EquipmentId.IsNone())
+	if (!GetOwner() || !GetOwner()->HasAuthority() || EquipmentDefinition.EquipmentId.IsNone())
 	{
 		return;
 	}
@@ -129,6 +164,7 @@ void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition&
 	FElysiaEquipmentEntry* OwnedEntry = FindOwnedEquipment(EquipmentDefinition.EquipmentId);
 	if (OwnedEntry == nullptr)
 	{
+		// 首次获得装备时，新建条目并从1级开始
 		FElysiaEquipmentEntry NewEntry;
 		NewEntry.Equipment = EquipmentDefinition;
 		NewEntry.Level = 1;
@@ -137,9 +173,11 @@ void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition&
 	}
 	else
 	{
+		// 再次获得同装备时，按定义中的 MaxLevel 做升级
 		OwnedEntry->Level = FMath::Clamp(OwnedEntry->Level + 1, 1, FMath::Max(1, EquipmentDefinition.MaxLevel));
 	}
 
+	// 装备获得后统一走效果、能力、进化状态刷新
 	ApplyEquipmentEffects(*OwnedEntry);
 	EnsureWeaponAbilityGranted(EquipmentDefinition);
 	UpdateWeaponEvolutionStates();

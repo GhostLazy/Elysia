@@ -78,8 +78,9 @@ public:
 
 	// 接口：每当角色升1级，执行一次装备选择
 	void QueueLevelUpSelections(int32 NumSelections);
-	
-	// 赋予角色装备
+	// 初始化角色开局装备，只允许成功执行一次
+	void GrantStartupEquipmentsOnce(const TArray<FName>& StartupEquipmentIds);
+	// 赋予角色装备；未拥有时新增，已拥有时升级
 	void GrantEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition);
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
@@ -107,6 +108,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Replicated, Category = "Equipment")
 	int32 PendingSelectionCount = 0;
 
+	// 避免 PlayerState / Pawn 重复初始化时重复发放开局装备
+	bool bStartupEquipmentsGranted = false;
+
 	UFUNCTION()
 	void OnRep_OwnedEquipments();
 
@@ -115,7 +119,7 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSelectChoiceByIndex(int32 ChoiceIndex);
-	
+
 	void RollNextChoices();
 	void ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry);
 	void EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition);
@@ -128,6 +132,6 @@ private:
 	bool CanOfferEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
-	// 用于被动升级时，执行GE更新（删除&新增）操作
+	// 用于被动升级时，执行GE更新（删除旧的，添加新的）
 	TMap<FName, FActiveGameplayEffectHandle> ActiveEffectHandles;
 };

@@ -78,15 +78,19 @@ void AElysiaEnemy::Die()
 
 	if (HasAuthority())
 	{
-		FTransform SpawnTransform;
-		const FFindFloorResult FloorResult = GetCharacterMovement()->CurrentFloor;
-		SpawnTransform.SetLocation(FloorResult.HitResult.ImpactPoint + FVector(0, 0, 10));
-		AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform);
-		
-		XPBall->SetXPValue(XPRewards.GetValueAtLevel(Level));
-		XPBall->SetColorByLevel(Level);
-		
-		XPBall->FinishSpawning(SpawnTransform);
+		if (XPBallClass)
+		{
+			FTransform SpawnTransform;
+			const FFindFloorResult FloorResult = GetCharacterMovement()->CurrentFloor;
+			SpawnTransform.SetLocation(FloorResult.HitResult.ImpactPoint + FVector(0, 0, 10));
+			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
+			{
+				XPBall->SetXPValue(XPRewards.GetValueAtLevel(Level));
+				XPBall->SetColorByLevel(Level);
+				XPBall->FinishSpawning(SpawnTransform);
+			}
+		}
+
 		Destroy();
 	}
 }

@@ -11,7 +11,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Elysia/Elysia.h"
 #include "Equipment/ElysiaEquipmentComponent.h"
-#include "Equipment/ElysiaEquipmentDefinition.h"
 #include "Player/ElysiaPlayerController.h"
 #include "UI/ElysiaHUD.h"
 
@@ -115,6 +114,11 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		AbilitySystemComponent = ElysiaPlayerState->GetAbilitySystemComponent();
 		AttributeSet = ElysiaPlayerState->GetAttributeSet();
 	}
+
+	if (!AbilitySystemComponent || !AttributeSet)
+	{
+		return;
+	}
 	
 	InitDefaultAttributes();
 	InitHealthBar();
@@ -139,15 +143,20 @@ void AElysiaCharacter::InitAbilityActorInfo()
 
 void AElysiaCharacter::InitCharacterEquipments()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	if (AElysiaPlayerState* ElysiaPlayerState = Cast<AElysiaPlayerState>(GetPlayerState()))
 	{
 		UElysiaEquipmentComponent* EquipmentComponent = ElysiaPlayerState->GetEquipmentComponent();
-		const UElysiaEquipmentPoolDataAsset* EquipmentPool = EquipmentComponent->GetEquipmentPool();
-		
-		for (const FName EquipmentId : StartupEquipmentsId)
+		if (!EquipmentComponent)
 		{
-			const FElysiaEquipmentDefinition* Equipment = EquipmentPool->FindEquipmentById(EquipmentId);
-			EquipmentComponent->GrantEquipment(*Equipment);
+			UE_LOG(LogTemp, Warning, TEXT("%s failed to initialize startup equipments because EquipmentComponent is null."), *GetName());
+			return;
 		}
+
+		EquipmentComponent->GrantStartupEquipmentsOnce(StartupEquipmentsId);
 	}
 }

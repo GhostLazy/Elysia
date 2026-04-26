@@ -17,6 +17,7 @@ class UAttributeSet;
 class UAbilitySystemComponent;
 class UCameraComponent;
 class USpringArmComponent;
+struct FOnAttributeChangeData;
 
 UCLASS()
 class ELYSIA_API AElysiaCharacterBase : public ACharacter, public IAbilitySystemInterface, public ICombatInterface
@@ -31,6 +32,8 @@ public:
 	UAttributeSet* GetAttributeSet() const { return AttributeSet; }
 	
 	virtual void BeginPlay() override;
+	// 角色销毁时，清理已绑定的属性委托，避免重复初始化后残留回调
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	/* 战斗接口 */
 	virtual void Die() override {}
@@ -41,7 +44,8 @@ public:
 
 protected:
 	
-	void InitDefaultAttributes() const;
+	// 初始化默认属性，并同步基础表现（如移速）
+	void InitDefaultAttributes();
 		
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UWidgetComponent> HealthBar;
@@ -70,6 +74,7 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FOnAttributeChangeSignature OnMoveSpeedChanged;
 	
+	// 绑定血量相关回调，供血条/UI刷新使用
 	virtual void InitHealthBar();
 	void InitCharacterAbilities() const;
 	
@@ -78,5 +83,16 @@ protected:
 private:
 	
 	void ApplyEffectToSelf(const TSubclassOf<UGameplayEffect>& EffectClass, const float Level) const;
+	// 单独拆分绑定函数，避免 InitAbilityActorInfo 多次调用时反复叠绑
+	void BindMoveSpeedDelegate();
+	void BindHealthBarDelegates();
+	void UnbindAttributeDelegates();
+	void HandleMoveSpeedChanged(const FOnAttributeChangeData& Data);
+	void HandleHealthChanged(const FOnAttributeChangeData& Data);
+	void HandleMaxHealthChanged(const FOnAttributeChangeData& Data);
+
+	FDelegateHandle MoveSpeedChangedHandle;
+	FDelegateHandle HealthChangedHandle;
+	FDelegateHandle MaxHealthChangedHandle;
 	
 };
