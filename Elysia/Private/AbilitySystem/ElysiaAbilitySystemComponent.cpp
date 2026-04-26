@@ -12,16 +12,6 @@ void UElysiaAbilitySystemComponent::AddCharacterAbilities(const TArray<TSubclass
 	}
 }
 
-void UElysiaAbilitySystemComponent::AddCharacterPassiveAbilities(
-	const TArray<TSubclassOf<UGameplayAbility>>& StartupPassiveAbilities)
-{
-	for (const TSubclassOf<UGameplayAbility>& AbilityClass : StartupPassiveAbilities)
-	{
-		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, 1);
-		GiveAbilityAndActivateOnce(AbilitySpec);
-	}
-}
-
 void UElysiaAbilitySystemComponent::GrantOrUpdateAbilityLevel(TSubclassOf<UGameplayAbility> AbilityClass, int32 AbilityLevel)
 {
 	if (!AbilityClass)

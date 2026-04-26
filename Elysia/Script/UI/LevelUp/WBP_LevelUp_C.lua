@@ -9,26 +9,17 @@
 ---@type WBP_LevelUp_C
 local M = UnLua.Class()
 
---function M:Initialize(Initializer)
---end
-
---function M:PreConstruct(IsDesignTime)
---end
-
 function M:WidgetControllerSet()
     self.LevelUpWidgetController = UE.UElysiaLevelUpWidgetController.Cast(self.WidgetController, UE.UElysiaLevelUpWidgetController.StaticClass())
-    self.LevelUpWidgetController.OnEquipmentChoicesChanged:Add(self, self.EquipmentChoicesChanged)
-    self.LevelUpWidgetController.OnEquipmentInventoryChanged:Add(self, self.EquipmentInventoryChanged)
+    self.LevelUpWidgetController.OnEquipmentChoicesChanged:Add(self, self.HandleEquipmentChoicesChange)
+    self.LevelUpWidgetController.OnEquipmentInventoryChanged:Add(self, self.HandleEquipmentInventoryChange)
 
     self.Button_0.OnClicked:Add(self, self.OnButtonClicked_0)
     self.Button_1.OnClicked:Add(self, self.OnButtonClicked_1)
     self.Button_2.OnClicked:Add(self, self.OnButtonClicked_2)
 
-    self:EquipmentChoicesChanged()
-end
-
-function M:Construct()
-    
+    --显示初始装备
+    self:HandleEquipmentChoicesChange()
 end
 
 function M:EnterLevelUpState()
@@ -93,7 +84,7 @@ function M:OnButtonClicked_2()
     self.LevelUpWidgetController:SelectEquipmentByIndex(2)
 end
 
-function M:EquipmentChoicesChanged()
+function M:HandleEquipmentChoicesChange()
     if self.LevelUpWidgetController:HasPendingEquipmentChoices() then
         self:EnterLevelUpState()
         self:UpdateChoiceText(self.TextBlock_0, 1)
@@ -106,7 +97,7 @@ function M:EquipmentChoicesChanged()
     end
 end
 
-function M:EquipmentInventoryChanged()
+function M:HandleEquipmentInventoryChange()
     local OwnedWeapons = UE.TArray(UE.FElysiaEquipmentDefinition)
     local OwnedPassives = UE.TArray(UE.FElysiaEquipmentDefinition)
     local OwnedEquipments = self.LevelUpWidgetController.OwnedEquipments

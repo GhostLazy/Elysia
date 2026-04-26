@@ -30,6 +30,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 	UAttributeSet* GetAttributeSet() const { return AttributeSet; }
 	
+	virtual void BeginPlay() override;
+	
 	/* 战斗接口 */
 	virtual void Die() override {}
 	virtual bool IsDead() const override { return bDead; }
@@ -38,8 +40,7 @@ public:
 	virtual bool HasTag(const FName Tag) const override { return ActorHasTag(Tag); }
 
 protected:
-
-	virtual void BeginPlay() override;
+	
 	void InitDefaultAttributes() const;
 		
 	UPROPERTY(VisibleAnywhere, Category = "Component")

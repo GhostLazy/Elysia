@@ -80,6 +80,5 @@ void AElysiaCharacterBase::InitCharacterAbilities() const
 	if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(AbilitySystemComponent))
 	{
 		ElysiaASC->AddCharacterAbilities(StartupAbilities);
-		// ElysiaASC->AddCharacterPassiveAbilities(StartupEquipments);
 	}
 }

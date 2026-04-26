@@ -36,14 +36,17 @@ void AElysiaProjectile::BeginPlay()
 	Super::BeginPlay();
 	SetLifeSpan(LifeSpan);
 	SetReplicateMovement(true);
-	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaProjectile::OnSphereOverlap);
+	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaProjectile::HandleSphereOverlapBegin);
 }
 
-void AElysiaProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AElysiaProjectile::HandleSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                                                 UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+                                                 const FHitResult& SweepResult)
 {
 	if (!OtherActor->ActorHasTag(FName("Enemy")) || !HasAuthority()) return;
 	
-	if (UElysiaAbilitySystemComponent* TargetASC = Cast<UElysiaAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor)))
+	if (UElysiaAbilitySystemComponent* TargetASC = Cast<UElysiaAbilitySystemComponent>(
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor)))
 	{
 		TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
 	}
