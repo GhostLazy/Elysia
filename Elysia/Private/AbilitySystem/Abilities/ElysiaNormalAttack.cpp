@@ -11,26 +11,12 @@
 #include "Actor/ElysiaProjectile.h"
 #include "Character/ElysiaCharacter.h"
 #include "Equipment/ElysiaEquipmentComponent.h"
-#include "Player/ElysiaPlayerState.h"
-
-UElysiaNormalAttack::UElysiaNormalAttack()
-{
-	// 确保客户端可激活技能
-	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
-}
 
 void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                           const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
                                           const FGameplayEventData* TriggerEventData)
 {
-	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
-	{
-		constexpr bool bReplicateEndAbility = true;
-		constexpr bool bWasCancelled = true;
-		EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-	}
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	OnAttackSpeedChanged.AddDynamic(this, &UElysiaNormalAttack::ResetTimer);
 	OnAttackSpeedChanged.Broadcast(GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
@@ -62,7 +48,7 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 			? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal()
 			: ElysiaCharacter->GetActorForwardVector();
 		const FRotator BaseRotation = AimDirection.Rotation();
-		const int32 BaseProjectileCount = FMath::Max(1, GetBaseProjectileCount());
+		const int32 BaseProjectileCount = FMath::Max(1, GetBaseProjectileCount(ProjectileCountByLevel));
 		const bool bEvolved = IsWeaponEvolved();
 		const int32 ArrowsPerVolley = bEvolved ? 2 : 1;
 
@@ -144,56 +130,4 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 			EffectContext);
 		Projectile->FinishSpawning(SpawnTransform);
 	}
-}
-
-int32 UElysiaNormalAttack::GetWeaponAbilityLevel() const
-{
-	const int32 AbilityLevel = GetAbilityLevel();
-	if (AbilityLevel > 0)
-	{
-		return AbilityLevel;
-	}
-
-	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
-	{
-		return FMath::Max(1, EquipmentComponent->GetEquipmentLevelByAbilityClass(GetClass()));
-	}
-
-	return 1;
-}
-
-int32 UElysiaNormalAttack::GetBaseProjectileCount() const
-{
-	const int32 WeaponLevel = GetWeaponAbilityLevel();
-	const int32 LevelIndex = FMath::Clamp(WeaponLevel - 1, 0, ProjectileCountByLevel.Num() - 1);
-	return ProjectileCountByLevel.IsValidIndex(LevelIndex) ? ProjectileCountByLevel[LevelIndex] : 1;
-}
-
-int32 UElysiaNormalAttack::GetProjectileCount() const
-{
-	const int32 BaseProjectileCount = GetBaseProjectileCount();
-	return BaseProjectileCount * (IsWeaponEvolved() ? 2 : 1);
-}
-
-bool UElysiaNormalAttack::IsWeaponEvolved() const
-{
-	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
-	{
-		return EquipmentComponent->IsEquipmentEvolvedByAbilityClass(GetClass());
-	}
-
-	return false;
-}
-
-UElysiaEquipmentComponent* UElysiaNormalAttack::GetEquipmentComponent() const
-{
-	if (const AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
-	{
-		if (const AElysiaPlayerState* ElysiaPlayerState = ElysiaCharacter->GetPlayerState<AElysiaPlayerState>())
-		{
-			return ElysiaPlayerState->GetEquipmentComponent();
-		}
-	}
-
-	return nullptr;
 }

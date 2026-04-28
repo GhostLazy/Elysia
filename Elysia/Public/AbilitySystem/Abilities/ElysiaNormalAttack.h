@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ElysiaProjectileAbility.h"
 #include "Abilities/GameplayAbility.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "ElysiaNormalAttack.generated.h"
@@ -13,17 +14,12 @@ class UElysiaEquipmentComponent;
  * 
  */
 UCLASS()
-class ELYSIA_API UElysiaNormalAttack : public UGameplayAbility
+class ELYSIA_API UElysiaNormalAttack : public UElysiaProjectileAbility
 {
 	GENERATED_BODY()
 	
-public:
-	
-	UElysiaNormalAttack();
-	
 protected:
 	
-	// 角色普攻在GAS初始化后即激活
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
@@ -35,24 +31,9 @@ protected:
 	// 当攻速属性发生变化时，重设普攻间隔
 	UFUNCTION()
 	void ResetTimer(float NewAttackSpeed);
-	int32 GetWeaponAbilityLevel() const;
-
-	// 根据武器等级获取基础连发次数
-	int32 GetBaseProjectileCount() const;
-	// 获取当前总箭矢数量（进化后翻倍）
-	int32 GetProjectileCount() const;
-	// 查询武器是否已进化
-	bool IsWeaponEvolved() const;
-	// 从 PlayerState 上获取装备组件
-	UElysiaEquipmentComponent* GetEquipmentComponent() const;
+	
 	// 执行一次齐射；进化前为单箭，进化后为并排双箭
 	void FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley) const;
-	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AElysiaProjectile> ProjectileClass;
-	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DamageEffectClass;
 	
 	UPROPERTY()
 	FOnAttributeChangeSignature OnAttackSpeedChanged;
@@ -71,8 +52,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
 	float EvolvedPairSpacing = 18.f;
 	
-	FTimerHandle SpawnProjectileTimer;
-	
 private:
 	
 	// 用作定时器回调函数，周期性寻找目标并执行普攻动作
@@ -81,6 +60,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<AActor> TargetActor;
 	
+	// 基础攻击间隔
 	float Interval = 1.f;
 	
 };

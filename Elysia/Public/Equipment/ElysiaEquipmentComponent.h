@@ -52,6 +52,12 @@ struct FElysiaEquipmentChoice
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
 	bool bWillEvolve = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
+	bool bIsRecoveryChoice = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
+	float RecoveryHealth = 0.f;
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnEquipmentCollectionChanged);
@@ -97,6 +103,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Equipment", meta = (ClampMin = "1"))
 	int32 ChoiceCountPerLevel = 3;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Equipment", meta = (ClampMin = "1.0"))
+	float RecoveryChoiceHealthAmount = 50.f;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_OwnedEquipments, Category = "Equipment")
@@ -121,10 +130,12 @@ private:
 	void ServerSelectChoiceByIndex(int32 ChoiceIndex);
 
 	void RollNextChoices();
+	void ApplyRecoveryChoice(float RecoveryHealth);
 	void ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry);
 	void EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition);
 	void UpdateWeaponEvolutionStates();
 	bool CanEvolve(const FElysiaEquipmentEntry& EquipmentEntry) const;
+	FElysiaEquipmentChoice MakeRecoveryChoice() const;
 	FElysiaEquipmentEntry* FindOwnedEquipment(FName EquipmentId);
 	const FElysiaEquipmentEntry* FindOwnedEquipmentById(FName EquipmentId) const;
 	const FElysiaEquipmentEntry* FindOwnedEquipmentByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;

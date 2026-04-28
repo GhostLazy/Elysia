@@ -10,8 +10,11 @@
 local M = UnLua.Class()
 
 function M:ShouldPauseForLevelUp()
-    local World = self:GetWorld()
-    return World and World:GetNetMode() == UE.ENetMode.NM_Standalone
+    return UE.UGameplayStatics.GetNumPlayerStates(self) <= 1
+end
+
+function M:ShouldUseExclusiveLevelUpInput()
+    return self:ShouldPauseForLevelUp()
 end
 
 function M:WidgetControllerSet()
@@ -23,7 +26,7 @@ function M:WidgetControllerSet()
     self.Button_1.OnClicked:Add(self, self.OnButtonClicked_1)
     self.Button_2.OnClicked:Add(self, self.OnButtonClicked_2)
 
-    --显示初始装备
+    -- 显示初始装备
     self:HandleEquipmentChoicesChange()
 end
 
@@ -34,8 +37,10 @@ function M:EnterLevelUpState()
 
     local PlayerController = self:GetOwningPlayer()
     if PlayerController then
-        PlayerController:SetIgnoreMoveInput(true)
-        UE.UWidgetBlueprintLibrary.SetInputMode_UIOnlyEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, true)
+        if self:ShouldUseExclusiveLevelUpInput() then
+            PlayerController:SetIgnoreMoveInput(true)
+            UE.UWidgetBlueprintLibrary.SetInputMode_UIOnlyEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, true)
+        end
     end
 
     self.bPausedForLevelUp = self:ShouldPauseForLevelUp()
@@ -56,8 +61,10 @@ function M:ExitLevelUpState()
     end
 
     if PlayerController then
-        PlayerController:ResetIgnoreMoveInput()
-        UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, false, true)
+        if self:ShouldUseExclusiveLevelUpInput() then
+            PlayerController:ResetIgnoreMoveInput()
+            UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, false, true)
+        end
     end
 
     self.bPausedForLevelUp = false
@@ -76,11 +83,17 @@ function M:UpdateChoiceText(TextBlock, ChoiceIndex)
     end
 
     local Choice = self.LevelUpWidgetController.CurrentEquipmentChoices:Get(ChoiceIndex)
+    if Choice and Choice.bIsRecoveryChoice then
+        TextBlock:SetText(string.format("恢复%.0f点生命值", Choice.RecoveryHealth))
+        return
+    end
+
     if Choice and Choice.Equipment then
         TextBlock:SetText(Choice.Equipment.DisplayName)
-    else
-        TextBlock:SetText("")
+        return
     end
+
+    TextBlock:SetText("")
 end
 
 function M:OnButtonClicked_0()
@@ -121,7 +134,7 @@ function M:HandleEquipmentInventoryChange()
             OwnedPassives:Add(OwnedEquipment)
         end
     end
-    
+
     local WeaponNum = OwnedWeapons:Length()
     if WeaponNum >= 1 then
         self.Image_Weapon_1:SetBrushFromTexture(OwnedWeapons:Get(1).Icon) end

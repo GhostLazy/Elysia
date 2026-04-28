@@ -22,6 +22,9 @@ public:
 	
 	UPROPERTY()
 	FGameplayEffectSpecHandle EffectSpecHandle;
+	
+	void SetIsPenetrate(bool IsPenetrate) { bPenetrate = IsPenetrate; }
+	void SetMovementSpeed(float MovementSpeed) const;
 
 protected:
 	
@@ -42,6 +45,11 @@ protected:
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
 	
 	UPROPERTY(EditDefaultsOnly)
-	float LifeSpan = 5.f;
+	float LifeSpan = 2.f;
+	
+	UPROPERTY(EditDefaultsOnly)
+	bool bPenetrate = false;
+
+	TSet<TWeakObjectPtr<AActor>> HitActors;
 	
 };

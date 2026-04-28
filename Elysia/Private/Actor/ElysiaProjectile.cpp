@@ -39,16 +39,38 @@ void AElysiaProjectile::BeginPlay()
 	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaProjectile::HandleSphereOverlapBegin);
 }
 
+void AElysiaProjectile::SetMovementSpeed(float MovementSpeed) const
+{
+	ProjectileMovement->InitialSpeed = MovementSpeed;
+	ProjectileMovement->MaxSpeed = MovementSpeed;
+}
+
 void AElysiaProjectile::HandleSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                                  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                                  const FHitResult& SweepResult)
 {
-	if (!OtherActor->ActorHasTag(FName("Enemy")) || !HasAuthority()) return;
+	if (!HasAuthority() || !IsValid(OtherActor) || !OtherActor->ActorHasTag(FName("Enemy")))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<AActor> HitActor(OtherActor);
+	if (bPenetrate && HitActors.Contains(HitActor))
+	{
+		return;
+	}
 	
 	if (UElysiaAbilitySystemComponent* TargetASC = Cast<UElysiaAbilitySystemComponent>(
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor)))
 	{
 		TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+		if (bPenetrate)
+		{
+			HitActors.Add(HitActor);
+		}
 	}
-	Destroy();
+	if (!bPenetrate)
+	{
+		Destroy();
+	}
 }

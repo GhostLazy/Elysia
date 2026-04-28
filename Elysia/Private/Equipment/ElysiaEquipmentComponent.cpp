@@ -4,6 +4,7 @@
 #include "Equipment/ElysiaEquipmentComponent.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
+#include "AbilitySystem/ElysiaAttributeSet.h"
 #include "AbilitySystemInterface.h"
 #include "Algo/RandomShuffle.h"
 #include "GameplayEffect.h"
@@ -130,7 +131,15 @@ void UElysiaEquipmentComponent::SelectChoiceByIndex(int32 ChoiceIndex)
 		return;
 	}
 
-	GrantEquipment(PendingChoices[ChoiceIndex].Equipment);
+	const FElysiaEquipmentChoice& SelectedChoice = PendingChoices[ChoiceIndex];
+	if (SelectedChoice.bIsRecoveryChoice)
+	{
+		ApplyRecoveryChoice(SelectedChoice.RecoveryHealth);
+	}
+	else
+	{
+		GrantEquipment(SelectedChoice.Equipment);
+	}
 
 	PendingChoices.Empty();
 	OnRep_PendingChoices();
@@ -210,18 +219,13 @@ void UElysiaEquipmentComponent::RollNextChoices()
 		}
 	}
 
-	if (Candidates.IsEmpty())
+	if (!Candidates.IsEmpty())
 	{
-		PendingSelectionCount = 0;
-		PendingChoices.Empty();
-		OnRep_PendingChoices();
-		return;
+		Algo::RandomShuffle(Candidates);
 	}
 
-	Algo::RandomShuffle(Candidates);
-
 	const int32 NumChoices = FMath::Min(ChoiceCountPerLevel, Candidates.Num());
-	PendingChoices.Reset(NumChoices);
+	PendingChoices.Reset(ChoiceCountPerLevel);
 	for (int32 Index = 0; Index < NumChoices; ++Index)
 	{
 		const FElysiaEquipmentDefinition& EquipmentDefinition = Candidates[Index];
@@ -244,7 +248,28 @@ void UElysiaEquipmentComponent::RollNextChoices()
 		PendingChoices.Add(Choice);
 	}
 
+	while (PendingChoices.Num() < ChoiceCountPerLevel)
+	{
+		PendingChoices.Add(MakeRecoveryChoice());
+	}
+
 	OnRep_PendingChoices();
+}
+
+void UElysiaEquipmentComponent::ApplyRecoveryChoice(float RecoveryHealth)
+{
+	if (RecoveryHealth <= 0.f)
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent())
+	{
+		const float CurrentHealth = AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetHealthAttribute());
+		const float MaxHealth = AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetMaxHealthAttribute());
+		const float NewHealth = FMath::Clamp(CurrentHealth + RecoveryHealth, 0.f, MaxHealth);
+		AbilitySystemComponent->SetNumericAttributeBase(UElysiaAttributeSet::GetHealthAttribute(), NewHealth);
+	}
 }
 
 void UElysiaEquipmentComponent::ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry)
@@ -335,6 +360,14 @@ bool UElysiaEquipmentComponent::CanEvolve(const FElysiaEquipmentEntry& Equipment
 	}
 
 	return GetEquipmentLevelById(EquipmentEntry.Equipment.RequiredPassiveEquipmentId) > 0;
+}
+
+FElysiaEquipmentChoice UElysiaEquipmentComponent::MakeRecoveryChoice() const
+{
+	FElysiaEquipmentChoice Choice;
+	Choice.bIsRecoveryChoice = true;
+	Choice.RecoveryHealth = RecoveryChoiceHealthAmount;
+	return Choice;
 }
 
 FElysiaEquipmentEntry* UElysiaEquipmentComponent::FindOwnedEquipment(FName EquipmentId)
