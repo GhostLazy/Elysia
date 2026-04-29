@@ -5,9 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Elysia/Elysia.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UI/ElysiaUserWidget.h"
 
@@ -32,13 +30,21 @@ void AElysiaCharacterBase::InitDefaultAttributes()
 		ApplyEffectToSelf(DefaultVitalAttributeClass, 1.f);
 	}
 
-	// 监听移速属性变化，并同步 CharacterMovement
+	// 监听移速与回血属性变化
 	BindMoveSpeedDelegate();
+	BindHealthRegenDelegate();
 
-	// 根据移速属性初始值，初始化角色移速
+	// 根据移速、回血属性初始值，初始化角色移速与回血量
 	if (const UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
 	{
 		GetCharacterMovement()->MaxWalkSpeed = ElysiaAS->GetMoveSpeed();
+		HealthRegenValue = ElysiaAS->GetHealthRegen();
+	}
+	
+	// 服务器设置回血定时器
+	if (HasAuthority())
+	{
+		GetWorld()->GetTimerManager().SetTimer(HealthRegenTimer, this, &AElysiaCharacterBase::ApplyHealthRegen, HealthRegenInterval, true);
 	}
 }
 
@@ -56,6 +62,7 @@ void AElysiaCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// 角色销毁时移除属性回调，防止旧Pawn残留委托
 	UnbindAttributeDelegates();
+	GetWorld()->GetTimerManager().ClearTimer(HealthRegenTimer);
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -79,6 +86,16 @@ void AElysiaCharacterBase::ApplyEffectToSelf(const TSubclassOf<UGameplayEffect>&
 	const FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(EffectClass, Level, EffectContext);
 
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+}
+
+void AElysiaCharacterBase::ApplyHealthRegen()
+{
+	if (AbilitySystemComponent)
+	{
+		const float NewHealth = AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetHealthAttribute()) + HealthRegenValue;
+		const float ClampedHealth = FMath::Clamp(NewHealth, 0, AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetMaxHealthAttribute()));
+		AbilitySystemComponent->SetNumericAttributeBase(UElysiaAttributeSet::GetHealthAttribute(), ClampedHealth);
+	}
 }
 
 void AElysiaCharacterBase::BindMoveSpeedDelegate()
@@ -129,6 +146,25 @@ void AElysiaCharacterBase::BindHealthBarDelegates()
 		.AddUObject(this, &AElysiaCharacterBase::HandleMaxHealthChanged);
 }
 
+void AElysiaCharacterBase::BindHealthRegenDelegate()
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// 重新初始化时先移除旧回调，避免同一Pawn重复绑定
+	if (HealthRegenChangedHandle.IsValid())
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthRegenAttribute()).Remove(HealthRegenChangedHandle);
+		HealthRegenChangedHandle.Reset();
+	}
+
+	HealthRegenChangedHandle = AbilitySystemComponent
+		->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthRegenAttribute())
+		.AddUObject(this, &AElysiaCharacterBase::HandleHealthRegenChanged);
+}
+
 void AElysiaCharacterBase::UnbindAttributeDelegates()
 {
 	if (AbilitySystemComponent)
@@ -148,11 +184,17 @@ void AElysiaCharacterBase::UnbindAttributeDelegates()
 		{
 			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetMaxHealthAttribute()).Remove(MaxHealthChangedHandle);
 		}
+		
+		if (HealthRegenChangedHandle.IsValid())
+		{
+			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthRegenAttribute()).Remove(HealthRegenChangedHandle);
+		}
 	}
 
 	MoveSpeedChangedHandle.Reset();
 	HealthChangedHandle.Reset();
 	MaxHealthChangedHandle.Reset();
+	HealthRegenChangedHandle.Reset();
 }
 
 void AElysiaCharacterBase::HandleMoveSpeedChanged(const FOnAttributeChangeData& Data)
@@ -170,15 +212,23 @@ void AElysiaCharacterBase::HandleMaxHealthChanged(const FOnAttributeChangeData& 
 {
 	OnMaxHealthChanged.Broadcast(Data.NewValue);
 	
-	if (UAbilitySystemComponent* CurrentASC = GetAbilitySystemComponent())
+	if (HasAuthority())
 	{
-		const float CurrentHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetHealthAttribute());
-		const float MaxHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetMaxHealthAttribute());
-		
-		const float MaxHealthChange = Data.NewValue - Data.OldValue;
-		const float NewHealth = FMath::Clamp(CurrentHealth + MaxHealthChange, 0.f, MaxHealth);
-		CurrentASC->SetNumericAttributeBase(UElysiaAttributeSet::GetHealthAttribute(), NewHealth);
+		if (UAbilitySystemComponent* CurrentASC = GetAbilitySystemComponent())
+		{
+			const float CurrentHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetHealthAttribute());
+			const float MaxHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetMaxHealthAttribute());
+			
+			const float MaxHealthChange = Data.NewValue - Data.OldValue;
+			const float NewHealth = FMath::Clamp(CurrentHealth + MaxHealthChange, 0.f, MaxHealth);
+			CurrentASC->SetNumericAttributeBase(UElysiaAttributeSet::GetHealthAttribute(), NewHealth);
+		}
 	}
+}
+
+void AElysiaCharacterBase::HandleHealthRegenChanged(const FOnAttributeChangeData& Data)
+{
+	HealthRegenValue = Data.NewValue;
 }
 
 void AElysiaCharacterBase::InitCharacterAbilities() const

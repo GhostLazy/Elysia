@@ -65,6 +65,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
 	
+	UPROPERTY(EditDefaultsOnly)
+	int32 HealthRegenInterval = 1.f;
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnAttributeChangeSignature OnHealthChanged;
 	
@@ -83,16 +86,23 @@ protected:
 private:
 	
 	void ApplyEffectToSelf(const TSubclassOf<UGameplayEffect>& EffectClass, const float Level) const;
+	void ApplyHealthRegen();
 	// 单独拆分绑定函数，避免 InitAbilityActorInfo 多次调用时反复叠绑
 	void BindMoveSpeedDelegate();
 	void BindHealthBarDelegates();
+	void BindHealthRegenDelegate();
 	void UnbindAttributeDelegates();
 	void HandleMoveSpeedChanged(const FOnAttributeChangeData& Data);
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
 	void HandleMaxHealthChanged(const FOnAttributeChangeData& Data);
+	void HandleHealthRegenChanged(const FOnAttributeChangeData& Data);
 
 	FDelegateHandle MoveSpeedChangedHandle;
 	FDelegateHandle HealthChangedHandle;
 	FDelegateHandle MaxHealthChangedHandle;
+	FDelegateHandle HealthRegenChangedHandle;
+	
+	FTimerHandle HealthRegenTimer;
+	float HealthRegenValue = 0.f;
 	
 };

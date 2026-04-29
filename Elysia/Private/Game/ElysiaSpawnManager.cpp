@@ -12,7 +12,9 @@
 
 AElysiaSpawnManager::AElysiaSpawnManager()
 {
+	// 自定义定时器
 	PrimaryActorTick.bCanEverTick = false;
+	// 刷怪机仅存在于服务器（隶属于GameMode）
 	bReplicates = false;
 }
 
