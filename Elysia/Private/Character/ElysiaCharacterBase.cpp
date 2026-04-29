@@ -169,6 +169,16 @@ void AElysiaCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Dat
 void AElysiaCharacterBase::HandleMaxHealthChanged(const FOnAttributeChangeData& Data)
 {
 	OnMaxHealthChanged.Broadcast(Data.NewValue);
+	
+	if (UAbilitySystemComponent* CurrentASC = GetAbilitySystemComponent())
+	{
+		const float CurrentHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetHealthAttribute());
+		const float MaxHealth = CurrentASC->GetNumericAttribute(UElysiaAttributeSet::GetMaxHealthAttribute());
+		
+		const float MaxHealthChange = Data.NewValue - Data.OldValue;
+		const float NewHealth = FMath::Clamp(CurrentHealth + MaxHealthChange, 0.f, MaxHealth);
+		CurrentASC->SetNumericAttributeBase(UElysiaAttributeSet::GetHealthAttribute(), NewHealth);
+	}
 }
 
 void AElysiaCharacterBase::InitCharacterAbilities() const
