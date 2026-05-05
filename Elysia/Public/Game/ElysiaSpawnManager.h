@@ -28,6 +28,12 @@ class ELYSIA_API AElysiaSpawnManager : public AActor
 public:
 
 	AElysiaSpawnManager();
+	void StartNormalSpawn();
+	void StopNormalSpawn();
+	void StartEliteSpawn();
+	void StopEliteSpawn();
+	bool IsNormalSpawnActive() const { return bNormalSpawnEnabled; }
+	AElysiaEnemy* SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass);
 
 protected:
 
@@ -35,6 +41,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Spawn")
 	TArray<FElysiaSpawnEntry> SpawnPool;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+	TArray<FElysiaSpawnEntry> EliteSpawnPool;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "1"))
 	int32 MaxAliveMinions = 20;
@@ -44,6 +53,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
 	float SpawnInterval = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
+	float EliteSpawnInterval = 45.f;
 
 	// 近似当前屏幕可见区域的一半尺寸，刷怪点会落在其外侧
 	UPROPERTY(EditAnywhere, Category = "Spawn")
@@ -66,12 +78,17 @@ protected:
 private:
 
 	void HandleSpawnTick();
+	void HandleEliteSpawnTick();
 	int32 CountAliveMinions() const;
 	APawn* FindSpawnTargetPlayer() const;
 	TSubclassOf<AElysiaEnemy> ChooseEnemyClassToSpawn() const;
+	TSubclassOf<AElysiaEnemy> ChooseEliteClassToSpawn() const;
 	bool TryFindSpawnLocation(const FVector& PlayerLocation, FVector& OutSpawnLocation) const;
 	bool IsSpawnLocationAvailable(const FVector& SpawnLocation, const AActor* PlayerActor) const;
 	FVector GenerateSpawnOffsetInBand() const;
+	AElysiaEnemy* SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> EnemyClass);
 
 	FTimerHandle SpawnTimerHandle;
+	FTimerHandle EliteSpawnTimerHandle;
+	bool bNormalSpawnEnabled = false;
 };

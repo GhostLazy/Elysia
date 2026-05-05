@@ -46,7 +46,7 @@ protected:
 
 	// 同一轮普攻内，多次连发之间的时间间隔
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
-	float BurstShotInterval = 0.08f;
+	float BurstShotInterval = 0.1f;
 
 	// 武器进化后，并排双箭之间的横向间距
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))

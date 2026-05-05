@@ -4,6 +4,8 @@
 #include "Character/ElysiaEnemy.h"
 #include "AI/AIController/ElysiaAIControllerBase.h"
 #include "AI/AIController/ElysiaMinionAIController.h"
+#include "Actor/ElysiaMagnetPickup.h"
+#include "Actor/ElysiaRunePickup.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -68,6 +70,7 @@ void AElysiaEnemy::BeginPlay()
 void AElysiaEnemy::Die()
 {
 	bDead = true;
+	OnEnemyDied.Broadcast(this);
 	ClearActiveContactDamageEffects();
 	CurrentOverlappingPlayers.Empty();
 
@@ -78,20 +81,44 @@ void AElysiaEnemy::Die()
 
 	if (HasAuthority())
 	{
-		if (XPBallClass)
-		{
-			FTransform SpawnTransform;
-			const FFindFloorResult FloorResult = GetCharacterMovement()->CurrentFloor;
-			SpawnTransform.SetLocation(FloorResult.HitResult.ImpactPoint + FVector(0, 0, 10));
-			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
-			{
-				XPBall->SetXPValue(XPRewards.GetValueAtLevel(Level));
-				XPBall->SetColorByLevel(Level);
-				XPBall->FinishSpawning(SpawnTransform);
-			}
-		}
-
+		const FFindFloorResult FloorResult = GetCharacterMovement()->CurrentFloor;
+		const FVector DropLocation = FloorResult.HitResult.ImpactPoint + FVector(0, 0, 10);
+		SpawnDeathRewards(DropLocation);
 		Destroy();
+	}
+}
+
+void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (EnemyType != EElysiaEnemyType::FinalBoss && XPBallClass)
+	{
+		FTransform SpawnTransform;
+		SpawnTransform.SetLocation(DropLocation);
+		if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
+		{
+			XPBall->SetXPValue(XPRewards.GetValueAtLevel(Level));
+			XPBall->SetColorByLevel(Level);
+			XPBall->FinishSpawning(SpawnTransform);
+		}
+	}
+
+	if ((EnemyType == EElysiaEnemyType::Elite || EnemyType == EElysiaEnemyType::Boss) && RunePickupClass)
+	{
+		FTransform SpawnTransform;
+		SpawnTransform.SetLocation(DropLocation + FVector(40.f, 0.f, 0.f));
+		GetWorld()->SpawnActor<AElysiaRunePickup>(RunePickupClass, SpawnTransform);
+	}
+
+	if (EnemyType == EElysiaEnemyType::Boss && MagnetPickupClass)
+	{
+		FTransform SpawnTransform;
+		SpawnTransform.SetLocation(DropLocation + FVector(-40.f, 0.f, 0.f));
+		GetWorld()->SpawnActor<AElysiaMagnetPickup>(MagnetPickupClass, SpawnTransform);
 	}
 }
 

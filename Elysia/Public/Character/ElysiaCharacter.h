@@ -32,9 +32,10 @@ public:
 	// 获取角色相机
 	UCameraComponent* GetCamera() { return Camera; }
 	
-protected:
-	
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+protected:
 	
 	UPROPERTY(EditAnywhere, Category = "Component")
 	TObjectPtr<USkeletalMeshComponent> Weapon;
@@ -47,15 +48,27 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UMotionWarpingComponent> MotionWarpingComponent;
-	
+
 	UPROPERTY(EditDefaultsOnly)
 	TArray<FName> StartupEquipmentsId;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pickup", meta = (ClampMin = "0.0"))
+	float XPBallAttractionRadius = 400.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pickup", meta = (ClampMin = "0.01"))
+	float XPBallAttractionScanInterval = 0.15f;
 
 private:
 	
 	// 角色ASC初始化
 	void InitAbilityActorInfo();
 	
+	// 角色装备初始化
 	void InitCharacterEquipments();
+
+	// 寻找并吸取附近经验球
+	void ScanAndAttractNearbyXPBalls();
+
+	FTimerHandle XPBallAttractionScanTimerHandle;
 	
 };

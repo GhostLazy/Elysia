@@ -2,8 +2,10 @@
 
 
 #include "Character/ElysiaCharacter.h"
+#include "Actor/ElysiaXPBall.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
+#include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -77,6 +79,12 @@ void AElysiaCharacter::OnRep_PlayerState()
 void AElysiaCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// 初始化经验球拾取定时器
+	if (HasAuthority())
+	{
+		GetWorldTimerManager().SetTimer(XPBallAttractionScanTimerHandle, this, &AElysiaCharacter::ScanAndAttractNearbyXPBalls, XPBallAttractionScanInterval, true);
+	}
 	
 	// 服务器初始化血条
 	if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
@@ -158,5 +166,46 @@ void AElysiaCharacter::InitCharacterEquipments()
 		}
 
 		EquipmentComponent->GrantStartupEquipmentsOnce(StartupEquipmentsId);
+	}
+}
+
+void AElysiaCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(XPBallAttractionScanTimerHandle);
+	Super::EndPlay(EndPlayReason);
+}
+
+void AElysiaCharacter::ScanAndAttractNearbyXPBalls()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	// 仅扫描Projectile
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Projectile);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaXPBallAttractionScan), false);
+	QueryParams.AddIgnoredActor(this);
+
+	if (!GetWorld()->OverlapMultiByObjectType(
+		Overlaps,
+		GetActorLocation(),
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(XPBallAttractionRadius),
+		QueryParams))
+	{
+		return;
+	}
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		if (AElysiaXPBall* XPBall = Cast<AElysiaXPBall>(Overlap.GetActor()))
+		{
+			XPBall->BeginAttractionTo(this);
+		}
 	}
 }

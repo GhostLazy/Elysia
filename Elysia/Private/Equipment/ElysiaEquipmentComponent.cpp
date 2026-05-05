@@ -64,6 +64,11 @@ bool UElysiaEquipmentComponent::IsEquipmentEvolvedByAbilityClass(TSubclassOf<UGa
 	return false;
 }
 
+void UElysiaEquipmentComponent::QueueRuneSelection()
+{
+	QueueLevelUpSelections(1);
+}
+
 void UElysiaEquipmentComponent::QueueLevelUpSelections(int32 NumSelections)
 {
 	if (NumSelections <= 0 || !GetOwner() || !GetOwner()->HasAuthority())

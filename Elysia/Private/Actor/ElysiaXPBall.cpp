@@ -2,84 +2,78 @@
 
 
 #include "Actor/ElysiaXPBall.h"
+
+#include "Character/ElysiaCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
-#include "Character/ElysiaCharacter.h"
-#include "Elysia/Elysia.h"
 #include "Player/ElysiaPlayerState.h"
+#include "Elysia/Elysia.h"
 
 AElysiaXPBall::AElysiaXPBall()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	
-	Sphere = CreateDefaultSubobject<USphereComponent>("Sphere");
-	SetRootComponent(Sphere);
+
 	Sphere->SetCollisionObjectType(ECC_Projectile);
 	Sphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	// 确保只会与Player触发重叠事件
 	Sphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Sphere->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
-	
+
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovement");
-	ProjectileMovement->InitialSpeed = 0;
+	ProjectileMovement->InitialSpeed = 0.f;
 	ProjectileMovement->MaxSpeed = MaxSpeed;
 	ProjectileMovement->ProjectileGravityScale = 0.f;
-}
-
-void AElysiaXPBall::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	
-	MoveToClosestPlayer();
+	ProjectileMovement->bRotationFollowsVelocity = false;
 }
 
 void AElysiaXPBall::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	SpawnLocation = GetActorLocation();
 	SetReplicateMovement(true);
-	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaXPBall::OnSphereOverlap);
 }
 
-void AElysiaXPBall::MoveToClosestPlayer()
+void AElysiaXPBall::HandlePickedBy(AElysiaCharacter* Character)
 {
-	if (TargetHasSet) return;
-	
-	TArray<AActor*> ActorsToIgnore;
-	TArray<AActor*> OverlapActors;
-	
-	UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 400.f, SpawnLocation, FName("Player"));
-	TargetToMove = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, SpawnLocation);
-	
-	if (TargetToMove)
+	CollectBy(Character);
+}
+
+bool AElysiaXPBall::CanBePickedBy(const AElysiaCharacter* Character, const UPrimitiveComponent* OtherComp) const
+{
+	return IsValid(Character) && OtherComp == Character->GetCapsuleComponent();
+}
+
+void AElysiaXPBall::BeginAttractionTo(AElysiaCharacter* Character)
+{
+	if (!HasAuthority() || bTargetHasSet || !IsValid(Character))
 	{
-		TargetHasSet = true;
+		return;
+	}
+
+	if (USceneComponent* TargetComponent = Character->GetRootComponent())
+	{
+		bTargetHasSet = true;
 		SetLifeSpan(LifeSpan);
-		
-		ProjectileMovement->HomingTargetComponent = TargetToMove->GetRootComponent();
+		ProjectileMovement->HomingTargetComponent = TargetComponent;
 		ProjectileMovement->HomingAccelerationMagnitude = Acceleration;
 		ProjectileMovement->bIsHomingProjectile = true;
 	}
 }
 
-void AElysiaXPBall::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AElysiaXPBall::CollectBy(AActor* Collector)
 {
-	if (!OtherActor->ActorHasTag(FName("Player")) || !HasAuthority()) return;
-	
-	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(OtherActor))
+	if (!HasAuthority() || !IsValid(Collector) || !Collector->ActorHasTag(FName("Player")))
+	{
+		return;
+	}
+
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(Collector))
 	{
 		if (AElysiaPlayerState* PlayerState = Cast<AElysiaPlayerState>(ElysiaCharacter->GetPlayerState()))
 		{
 			PlayerState->AddToXP(XPValue);
 		}
 	}
-	
+
 	Destroy();
 }
-
-
-

@@ -21,18 +21,11 @@ AElysiaSpawnManager::AElysiaSpawnManager()
 void AElysiaSpawnManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!HasAuthority() || SpawnPool.IsEmpty())
-	{
-		return;
-	}
-
-	GetWorldTimerManager().SetTimer(SpawnTimerHandle, this, &AElysiaSpawnManager::HandleSpawnTick, SpawnInterval, true);
 }
 
 void AElysiaSpawnManager::HandleSpawnTick()
 {
-	if (!HasAuthority() || SpawnPool.IsEmpty())
+	if (!HasAuthority() || !bNormalSpawnEnabled || SpawnPool.IsEmpty())
 	{
 		return;
 	}
@@ -80,12 +73,55 @@ void AElysiaSpawnManager::HandleSpawnTick()
 	}
 }
 
+void AElysiaSpawnManager::StartNormalSpawn()
+{
+	if (!HasAuthority() || SpawnPool.IsEmpty())
+	{
+		return;
+	}
+
+	bNormalSpawnEnabled = true;
+	if (!GetWorldTimerManager().IsTimerActive(SpawnTimerHandle))
+	{
+		GetWorldTimerManager().SetTimer(SpawnTimerHandle, this, &AElysiaSpawnManager::HandleSpawnTick, SpawnInterval, true);
+	}
+}
+
+void AElysiaSpawnManager::StopNormalSpawn()
+{
+	bNormalSpawnEnabled = false;
+	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+}
+
+void AElysiaSpawnManager::StartEliteSpawn()
+{
+	if (!HasAuthority() || EliteSpawnPool.IsEmpty())
+	{
+		return;
+	}
+
+	if (!GetWorldTimerManager().IsTimerActive(EliteSpawnTimerHandle))
+	{
+		GetWorldTimerManager().SetTimer(EliteSpawnTimerHandle, this, &AElysiaSpawnManager::HandleEliteSpawnTick, EliteSpawnInterval, true);
+	}
+}
+
+void AElysiaSpawnManager::StopEliteSpawn()
+{
+	GetWorldTimerManager().ClearTimer(EliteSpawnTimerHandle);
+}
+
+AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass)
+{
+	return SpawnEnemyOfClass(EnemyClass);
+}
+
 int32 AElysiaSpawnManager::CountAliveMinions() const
 {
 	int32 AliveCount = 0;
 	for (TActorIterator<AElysiaEnemy> It(GetWorld()); It; ++It)
 	{
-		if (IsValid(*It) && !It->IsDead())
+		if (IsValid(*It) && !It->IsDead() && It->GetEnemyType() == EElysiaEnemyType::Minion)
 		{
 			++AliveCount;
 		}
@@ -126,6 +162,48 @@ TSubclassOf<AElysiaEnemy> AElysiaSpawnManager::ChooseEnemyClassToSpawn() const
 	}
 
 	for (const FElysiaSpawnEntry& SpawnEntry : SpawnPool)
+	{
+		if (SpawnEntry.EnemyClass && SpawnEntry.Weight > 0.f)
+		{
+			return SpawnEntry.EnemyClass;
+		}
+	}
+
+	return nullptr;
+}
+
+TSubclassOf<AElysiaEnemy> AElysiaSpawnManager::ChooseEliteClassToSpawn() const
+{
+	float TotalWeight = 0.f;
+	for (const FElysiaSpawnEntry& SpawnEntry : EliteSpawnPool)
+	{
+		if (SpawnEntry.EnemyClass && SpawnEntry.Weight > 0.f)
+		{
+			TotalWeight += SpawnEntry.Weight;
+		}
+	}
+
+	if (TotalWeight <= 0.f)
+	{
+		return nullptr;
+	}
+
+	float RemainingWeight = FMath::FRandRange(0.f, TotalWeight);
+	for (const FElysiaSpawnEntry& SpawnEntry : EliteSpawnPool)
+	{
+		if (!SpawnEntry.EnemyClass || SpawnEntry.Weight <= 0.f)
+		{
+			continue;
+		}
+
+		RemainingWeight -= SpawnEntry.Weight;
+		if (RemainingWeight <= 0.f)
+		{
+			return SpawnEntry.EnemyClass;
+		}
+	}
+
+	for (const FElysiaSpawnEntry& SpawnEntry : EliteSpawnPool)
 	{
 		if (SpawnEntry.EnemyClass && SpawnEntry.Weight > 0.f)
 		{
@@ -247,4 +325,38 @@ FVector AElysiaSpawnManager::GenerateSpawnOffsetInBand() const
 			FMath::FRandRange(-OuterHalfY, -VisibleHalfExtent.Y),
 			0.f);
 	}
+}
+
+void AElysiaSpawnManager::HandleEliteSpawnTick()
+{
+	if (!HasAuthority() || EliteSpawnPool.IsEmpty())
+	{
+		return;
+	}
+
+	SpawnEnemyOfClass(ChooseEliteClassToSpawn());
+}
+
+AElysiaEnemy* AElysiaSpawnManager::SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> EnemyClass)
+{
+	if (!HasAuthority() || !EnemyClass)
+	{
+		return nullptr;
+	}
+
+	APawn* PlayerPawn = FindSpawnTargetPlayer();
+	if (!PlayerPawn)
+	{
+		return nullptr;
+	}
+
+	FVector SpawnLocation;
+	if (!TryFindSpawnLocation(PlayerPawn->GetActorLocation(), SpawnLocation))
+	{
+		return nullptr;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	return GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
 }

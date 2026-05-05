@@ -81,6 +81,7 @@ public:
 	bool IsEquipmentEvolvedById(FName EquipmentId) const;
 	int32 GetEquipmentLevelByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;
 	bool IsEquipmentEvolvedByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;
+	void QueueRuneSelection();
 
 	// 接口：每当角色升1级，执行一次装备选择
 	void QueueLevelUpSelections(int32 NumSelections);

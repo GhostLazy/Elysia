@@ -3,24 +3,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Actor/ElysiaPickupBase.h"
 #include "ElysiaXPBall.generated.h"
 
-class USphereComponent;
 class UProjectileMovementComponent;
+class UPrimitiveComponent;
+class AElysiaCharacter;
 
 UCLASS()
-class ELYSIA_API AElysiaXPBall : public AActor
+class ELYSIA_API AElysiaXPBall : public AElysiaPickupBase
 {
 	GENERATED_BODY()
 	
 public:	
 	
 	AElysiaXPBall();
-	virtual void Tick(float DeltaTime) override;
 	
 	int32 GetXPValue() const { return XPValue; }
 	void SetXPValue(const int32 InXP) { XPValue = InXP; }
+	
+	void CollectBy(AActor* Collector);
+	void BeginAttractionTo(AElysiaCharacter* Character);
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void SetColorByLevel(const int32 InLevel);
@@ -30,9 +33,8 @@ protected:
 	int32 XPValue = 0;
 	
 	virtual void BeginPlay() override;
-	
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USphereComponent> Sphere;
+	virtual void HandlePickedBy(AElysiaCharacter* Character) override;
+	virtual bool CanBePickedBy(const AElysiaCharacter* Character, const UPrimitiveComponent* OtherComp) const override;
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
@@ -48,15 +50,6 @@ protected:
 	
 private:
 	
-	void MoveToClosestPlayer();
-	
-	UPROPERTY()
-	TObjectPtr<AActor> TargetToMove;
-	
-	bool TargetHasSet = false;
-	FVector SpawnLocation;
-	
-	UFUNCTION()
-	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	bool bTargetHasSet = false;
 
 };
