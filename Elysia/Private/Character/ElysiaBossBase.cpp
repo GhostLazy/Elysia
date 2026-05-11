@@ -2,7 +2,6 @@
 
 
 #include "Character/ElysiaBossBase.h"
-
 #include "AI/AIController/ElysiaBossAIController.h"
 #include "Actor/ElysiaBossLaserActor.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -10,7 +9,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Elysia/Elysia.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CombatInterface.h"
 
 AElysiaBossBase::AElysiaBossBase()
@@ -60,7 +58,7 @@ bool AElysiaBossBase::IsTargetInRangeForSkill(EElysiaBossSkillType SkillType) co
 	}
 
 	const float DistanceToTarget = GetDistanceToCombatTarget2D();
-	return DistanceToTarget >= SkillSpec->MinRange && DistanceToTarget <= SkillSpec->CastRange;
+	return DistanceToTarget <= SkillSpec->CastRange;
 }
 
 bool AElysiaBossBase::CanCastSkill(EElysiaBossSkillType SkillType) const

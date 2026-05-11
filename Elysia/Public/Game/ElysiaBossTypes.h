@@ -70,5 +70,5 @@ struct FElysiaBossSkillSpec
 	float ChargeMaxDistance = 1000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss Skill|Charge")
-	bool bStopChargeOnFirstHit = true;
+	bool bStopChargeOnFirstHit = false;
 };

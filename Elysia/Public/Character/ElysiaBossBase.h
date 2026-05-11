@@ -17,6 +17,7 @@ class ELYSIA_API AElysiaBossBase : public AElysiaEnemy
 	GENERATED_BODY()
 
 public:
+	
 	AElysiaBossBase();
 	virtual void Die() override;
 
@@ -55,6 +56,7 @@ public:
 	FOnBossSkillFinishedSignature OnBossSkillFinished;
 
 protected:
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss")
 	TArray<FElysiaBossSkillSpec> BossSkills;
 
@@ -62,6 +64,7 @@ protected:
 	float SkillFacingInterpSpeed = 12.f;
 
 private:
+	
 	const FElysiaBossSkillSpec* FindSkillSpec(EElysiaBossSkillType SkillType) const;
 	bool TryApplyDamageToActor(AActor* TargetActor, TSubclassOf<UGameplayEffect> DamageEffectClass, float DamageEffectLevel);
 	void BeginSkillRecovery(float RecoveryTime, EElysiaBossSkillType SkillType);
@@ -85,4 +88,5 @@ private:
 	FVector ChargeStartLocation = FVector::ZeroVector;
 	bool bIsCastingSkill = false;
 	bool bIsCharging = false;
+	
 };

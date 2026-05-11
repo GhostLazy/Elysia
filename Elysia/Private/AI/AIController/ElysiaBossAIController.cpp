@@ -2,56 +2,47 @@
 
 
 #include "AI/AIController/ElysiaBossAIController.h"
-
-#include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
 #include "Character/ElysiaBossBase.h"
 
-void AElysiaBossAIController::OnPossess(APawn* InPawn)
+void AElysiaBossAIController::UpdateBehavior()
 {
-	Super::OnPossess(InPawn);
+	AElysiaBossBase* ControlledBoss = GetControlledBoss();
+	if (!ControlledBoss || ControlledBoss->IsDead())
+	{
+		StopAI();
+		return;
+	}
+	
 	RefreshTarget();
-}
-
-void AElysiaBossAIController::OnUnPossess()
-{
-	StopAI();
-	Super::OnUnPossess();
-}
-
-void AElysiaBossAIController::StartAI()
-{
-	Super::StartAI();
-
-	if (!GetWorldTimerManager().IsTimerActive(RetargetTimerHandle))
+	
+	if (!HasValidTarget())
 	{
-		GetWorldTimerManager().SetTimer(RetargetTimerHandle, this, &AElysiaBossAIController::RefreshTarget, RetargetInterval, true);
+		StopMovement();
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
 	}
-}
 
-void AElysiaBossAIController::StopAI()
-{
-	GetWorldTimerManager().ClearTimer(RetargetTimerHandle);
-	Super::StopAI();
-}
+	SetFocus(GetTargetActor(), EAIFocusPriority::Gameplay);
 
-void AElysiaBossAIController::RefreshTarget()
-{
-	if (AActor* NewTargetActor = FindClosestLivePlayerInRange())
+	if (ControlledBoss->IsCastingSkill() || ControlledBoss->IsCharging())
 	{
-		SetTargetActor(NewTargetActor);
-		if (AElysiaBossBase* ControlledBoss = GetControlledBoss())
-		{
-			ControlledBoss->SetCombatTarget(NewTargetActor);
-		}
+		StopMovement();
+		return;
 	}
-	else
+
+	if (TryCastBestSkill())
 	{
-		ClearTargetActor();
-		if (AElysiaBossBase* ControlledBoss = GetControlledBoss())
-		{
-			ControlledBoss->SetCombatTarget(nullptr);
-		}
+		StopMovement();
+		return;
 	}
+
+	if (ControlledBoss->HasOverlappingPlayers())
+	{
+		StopMovement();
+		return;
+	}
+	
+	MoveToCurrentTarget();
 }
 
 AElysiaBossBase* AElysiaBossAIController::GetControlledBoss() const
@@ -59,15 +50,12 @@ AElysiaBossBase* AElysiaBossAIController::GetControlledBoss() const
 	return Cast<AElysiaBossBase>(GetPawn());
 }
 
-bool AElysiaBossAIController::MoveToCurrentTarget()
+void AElysiaBossAIController::OnTargetActorChanged(AActor* NewTargetActor)
 {
-	if (!HasValidTarget())
+	if (AElysiaBossBase* ControlledBoss = GetControlledBoss())
 	{
-		return false;
+		ControlledBoss->SetCombatTarget(NewTargetActor);
 	}
-
-	MoveToActor(GetTargetActor(), ChaseAcceptanceRadius, true, true, true, nullptr, true);
-	return true;
 }
 
 bool AElysiaBossAIController::TryCastBestSkill()
@@ -78,23 +66,4 @@ bool AElysiaBossAIController::TryCastBestSkill()
 	}
 
 	return false;
-}
-
-bool AElysiaBossAIController::CanCastSkill(EElysiaBossSkillType SkillType) const
-{
-	if (const AElysiaBossBase* ControlledBoss = GetControlledBoss())
-	{
-		return ControlledBoss->CanCastSkill(SkillType);
-	}
-
-	return false;
-}
-
-AActor* AElysiaBossAIController::FindClosestLivePlayerInRange() const
-{
-	TArray<AActor*> ActorsToIgnore;
-	TArray<AActor*> OverlapActors;
-
-	UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, SearchRadius, GetPawn() ? GetPawn()->GetActorLocation() : FVector::ZeroVector, FName("Player"));
-	return UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, GetPawn() ? GetPawn()->GetActorLocation() : FVector::ZeroVector);
 }

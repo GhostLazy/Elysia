@@ -16,8 +16,6 @@ class ELYSIA_API AElysiaAIControllerBase : public AAIController
 	GENERATED_BODY()
 
 public:
-	
-	AElysiaAIControllerBase();
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void SetTargetActor(AActor* InTargetActor);
@@ -37,15 +35,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	virtual void StopAI();
 	
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void RefreshTarget();
+	
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	bool MoveToCurrentTarget();
+	
 protected:
 	
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	TObjectPtr<UStateTreeAIComponent> StateTreeAIComponent;
+	AActor* FindClosestPlayerInRange() const;
+	
+	virtual void UpdateBehavior();
+	virtual void OnTargetActorChanged(AActor* NewTargetActor);
+	void StartBehaviorTimer();
+	void StopBehaviorTimer();
 	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<AActor> TargetActor;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.0"))
+	float SearchRadius = 2000.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.0"))
+	float AcceptanceRadius = 5.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.05"))
+	float BehaviorTickInterval = 0.2f;
+	
+private:
+	
+	FTimerHandle BehaviorTimerHandle;
 	
 };
