@@ -12,6 +12,11 @@ void UElysiaWidgetController::SetWidgetControllerParams(APlayerState* PS, APlaye
 	PlayerController = PC;
 	AbilitySystemComponent = ASC;
 	AttributeSet = AS;
+	
+	if (PlayerController && PlayerController->GetWorld())
+	{
+		GameState = PlayerController->GetWorld()->GetGameState();
+	}
 }
 
 void UElysiaWidgetController::BindCallbacksToDependencies()

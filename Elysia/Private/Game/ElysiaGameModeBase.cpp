@@ -39,6 +39,7 @@ void AElysiaGameModeBase::StartRun()
 	CurrentRunPhase = EElysiaRunPhase::Normal;
 	TriggeredBossRounds = 0;
 	NormalPhaseElapsedSeconds = 0;
+	NormalPhaseTotalSeconds = 0;
 	CurrentBossStartTime = 0.f;
 	NormalScore = 0;
 	BossScore = 0;
@@ -51,6 +52,11 @@ void AElysiaGameModeBase::StartRun()
 		SpawnManager->StartEliteSpawn();
 	}
 
+	if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+	{
+		ElysiaGameState->SetNormalPhaseTotalDuration(NormalPhaseDuration * TotalBossRounds);
+	}
+	
 	UpdateGameStateSnapshot();
 	GetWorldTimerManager().SetTimer(RunLoopTimer, this, &AElysiaGameModeBase::AdvanceRunOneSecond, 1.f, true);
 }
@@ -61,10 +67,11 @@ void AElysiaGameModeBase::AdvanceRunOneSecond()
 	{
 	case EElysiaRunPhase::Normal:
 		++NormalPhaseElapsedSeconds;
+		++NormalPhaseTotalSeconds;
 		NormalScore += FMath::Max(0, NormalScorePerSecond);
 		TotalScore = NormalScore + BossScore;
 
-		if (NormalPhaseElapsedSeconds >= FMath::Max(1, FMath::RoundToInt(NormalPhaseDuration)))
+		if (NormalPhaseElapsedSeconds >= FMath::Max(1, NormalPhaseDuration))
 		{
 			NormalPhaseElapsedSeconds = 0;
 			++TriggeredBossRounds;
@@ -201,6 +208,7 @@ void AElysiaGameModeBase::UpdateGameStateSnapshot() const
 		ElysiaGameState->SetCurrentRunPhase(CurrentRunPhase);
 		ElysiaGameState->SetCurrentBossRound(CurrentRunPhase == EElysiaRunPhase::Normal || CurrentRunPhase == EElysiaRunPhase::Finished ? 0 : TriggeredBossRounds);
 		ElysiaGameState->SetNormalPhaseElapsedSeconds(CurrentRunPhase == EElysiaRunPhase::Normal ? NormalPhaseElapsedSeconds : 0);
+		ElysiaGameState->SetNormalPhaseTotalSeconds(NormalPhaseTotalSeconds);
 		ElysiaGameState->SetCurrentBossElapsedSeconds(
 			(CurrentRunPhase == EElysiaRunPhase::BossBattle || CurrentRunPhase == EElysiaRunPhase::FinalBossBattle)
 				? FMath::Max(0, FMath::FloorToInt(GetWorld()->GetTimeSeconds() - CurrentBossStartTime))

@@ -34,6 +34,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
 	TObjectPtr<APlayerState> PlayerState;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "WidgetController")
+	TObjectPtr<AGameStateBase> GameState;
 
 	// 常用辅助：从 PlayerState 上取装备组件
 	UElysiaEquipmentComponent* GetEquipmentComponent() const;

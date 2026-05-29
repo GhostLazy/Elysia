@@ -75,6 +75,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "1"))
 	int32 MaxSpawnAttemptsPerTick = 16;
 
+	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "1"))
+	int32 BossMaxSpawnAttempts = 24;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "0.0"))
+	float BossGroundTraceUpDistance = 2000.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "0.0"))
+	float BossGroundTraceDownDistance = 5000.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "0.0"))
+	float BossGroundClearance = 10.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "0.0"))
+	float BossPostSpawnGroundCheckDistance = 300.f;
+
 private:
 
 	void HandleSpawnTick();
@@ -85,6 +100,11 @@ private:
 	TSubclassOf<AElysiaEnemy> ChooseEliteClassToSpawn() const;
 	bool TryFindSpawnLocation(const FVector& PlayerLocation, FVector& OutSpawnLocation) const;
 	bool IsSpawnLocationAvailable(const FVector& SpawnLocation, const AActor* PlayerActor) const;
+	bool TryFindGroundedBossSpawnLocation(const FVector& PlayerLocation, TSubclassOf<AElysiaEnemy> EnemyClass, FVector& OutSpawnLocation) const;
+	bool TryProjectBossCandidateToGround(const FVector& CandidateLocation, float CapsuleHalfHeight, FVector& OutSpawnLocation) const;
+	bool IsBossSpawnLocationClear(const FVector& SpawnLocation, float CapsuleRadius, float CapsuleHalfHeight, const AActor* PlayerActor) const;
+	bool HasGroundBelowBoss(const FVector& BossLocation, float CapsuleHalfHeight, const AActor* IgnoredActor) const;
+	bool GetEnemyCapsuleSize(TSubclassOf<AElysiaEnemy> EnemyClass, float& OutCapsuleRadius, float& OutCapsuleHalfHeight) const;
 	FVector GenerateSpawnOffsetInBand() const;
 	AElysiaEnemy* SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> EnemyClass);
 

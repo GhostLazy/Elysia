@@ -12,6 +12,8 @@ void AElysiaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AElysiaGameState, CurrentRunPhase);
 	DOREPLIFETIME(AElysiaGameState, CurrentBossRound);
 	DOREPLIFETIME(AElysiaGameState, NormalPhaseElapsedSeconds);
+	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalSeconds);
+	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalDuration);
 	DOREPLIFETIME(AElysiaGameState, CurrentBossElapsedSeconds);
 	DOREPLIFETIME(AElysiaGameState, NormalScore);
 	DOREPLIFETIME(AElysiaGameState, BossScore);
@@ -34,6 +36,17 @@ void AElysiaGameState::SetNormalPhaseElapsedSeconds(int32 InElapsedSeconds)
 	NormalPhaseElapsedSeconds = FMath::Max(0, InElapsedSeconds);
 }
 
+void AElysiaGameState::SetNormalPhaseTotalSeconds(int32 InTotalSeconds)
+{
+	NormalPhaseTotalSeconds = FMath::Max(0, InTotalSeconds);
+	OnNormalPhaseTotalSecondsChanged.Broadcast(NormalPhaseTotalSeconds);
+}
+
+void AElysiaGameState::SetNormalPhaseTotalDuration(int32 InTotalDuration)
+{
+	NormalPhaseTotalDuration = FMath::Max(0, InTotalDuration);
+}
+
 void AElysiaGameState::SetCurrentBossElapsedSeconds(int32 InElapsedSeconds)
 {
 	CurrentBossElapsedSeconds = FMath::Max(0, InElapsedSeconds);
@@ -44,6 +57,8 @@ void AElysiaGameState::SetScores(int32 InNormalScore, int32 InBossScore, int32 I
 	NormalScore = FMath::Max(0, InNormalScore);
 	BossScore = FMath::Max(0, InBossScore);
 	TotalScore = FMath::Max(0, InTotalScore);
+	
+	OnTotalScoreChanged.Broadcast(TotalScore);
 }
 
 void AElysiaGameState::SetRunFinished(bool bInRunFinished)

@@ -2,6 +2,8 @@
 
 
 #include "UI/ElysiaOverlayWidgetController.h"
+
+#include "Game/ElysiaGameState.h"
 #include "Player/ElysiaPlayerState.h"
 
 void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
@@ -11,15 +13,26 @@ void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 		// Overlay 只关心常驻 HUD 数据：经验与等级
 		ElysiaPS->OnXPChanged.RemoveAll(this);
 		ElysiaPS->OnLevelChanged.RemoveAll(this);
-		ElysiaPS->OnXPChanged.AddUObject(this, &UElysiaOverlayWidgetController::OnXPChanged);
+		ElysiaPS->OnXPChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleXPChanged);
 		ElysiaPS->OnLevelChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleLevelChanged);
 
-		OnXPChanged(ElysiaPS->GetXP());
-		OnLevelTextChange.Broadcast(ElysiaPS->GetPlayerLevel(), false);
+		HandleXPChanged(ElysiaPS->GetXP());
+		HandleLevelChanged(ElysiaPS->GetPlayerLevel(), false);
+	}
+	
+	if (AElysiaGameState* ElysiaGameState = Cast<AElysiaGameState>(GameState))
+	{
+		ElysiaGameState->OnTotalScoreChanged.RemoveAll(this);
+		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.RemoveAll(this);
+		ElysiaGameState->OnTotalScoreChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleTotalScoreChanged);
+		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleGameProgressPercentChanged);
+		
+		HandleTotalScoreChanged(ElysiaGameState->GetTotalScore());
+		HandleGameProgressPercentChanged(ElysiaGameState->GetNormalPhaseTotalSeconds());
 	}
 }
 
-void UElysiaOverlayWidgetController::OnXPChanged(int32 NewXP) const
+void UElysiaOverlayWidgetController::HandleXPChanged(int32 NewXP) const
 {
 	if (const AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
@@ -51,7 +64,29 @@ void UElysiaOverlayWidgetController::OnXPChanged(int32 NewXP) const
 	}
 }
 
-void UElysiaOverlayWidgetController::HandleLevelChanged(int32 NewLevel, bool bLevelUp)
+void UElysiaOverlayWidgetController::HandleLevelChanged(int32 NewLevel, bool bLevelUp) const
 {
-	OnLevelTextChange.Broadcast(NewLevel, bLevelUp);
+	OnLevelTextChanged.Broadcast(NewLevel, bLevelUp);
+}
+
+void UElysiaOverlayWidgetController::HandleTotalScoreChanged(int32 NewTotalScore) const
+{
+	OnScoreTextChanged.Broadcast(NewTotalScore);
+}
+
+void UElysiaOverlayWidgetController::HandleGameProgressPercentChanged(int32 NewTotalSecond)
+{
+	if (const AElysiaGameState* ElysiaGameState = Cast<AElysiaGameState>(GameState))
+	{
+		if (NormalPhaseTotalDuration <= 0)
+		{
+			NormalPhaseTotalDuration = ElysiaGameState->GetNormalPhaseTotalDuration();
+		}
+		
+		if (NormalPhaseTotalDuration > 0)
+		{
+			const float Percent = FMath::Clamp(1.0 * NewTotalSecond / NormalPhaseTotalDuration, 0.f, 1.f);
+			OnGameProgressPercentChanged.Broadcast(Percent);
+		}
+	}
 }

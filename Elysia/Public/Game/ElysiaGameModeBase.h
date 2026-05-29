@@ -28,7 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Run", meta = (ClampMin = "1.0"))
-	float NormalPhaseDuration = 120.f;
+	int32 NormalPhaseDuration = 120.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Run", meta = (ClampMin = "1"))
 	int32 TotalBossRounds = 4;
@@ -69,6 +69,7 @@ private:
 	EElysiaRunPhase CurrentRunPhase = EElysiaRunPhase::Normal;
 	int32 TriggeredBossRounds = 0;
 	int32 NormalPhaseElapsedSeconds = 0;
+	int32 NormalPhaseTotalSeconds = 0;
 	float CurrentBossStartTime = 0.f;
 	int32 NormalScore = 0;
 	int32 BossScore = 0;
