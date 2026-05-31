@@ -53,7 +53,7 @@ protected:
 	TArray<FName> StartupEquipmentsId;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Pickup", meta = (ClampMin = "0.0"))
-	float XPBallAttractionRadius = 400.f;
+	float XPBallAttractionRadius = 250.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Pickup", meta = (ClampMin = "0.01"))
 	float XPBallAttractionScanInterval = 0.15f;

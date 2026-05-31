@@ -3,6 +3,10 @@
 
 #include "AI/AIController/ElysiaBossAIController.h"
 #include "Character/ElysiaBossBase.h"
+#include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "Interface/CombatInterface.h"
 
 void AElysiaBossAIController::UpdateBehavior()
 {
@@ -14,6 +18,10 @@ void AElysiaBossAIController::UpdateBehavior()
 	}
 	
 	RefreshTarget();
+	if (!HasValidTarget())
+	{
+		SetTargetActor(FindFallbackCombatTarget());
+	}
 	
 	if (!HasValidTarget())
 	{
@@ -25,6 +33,12 @@ void AElysiaBossAIController::UpdateBehavior()
 	SetFocus(GetTargetActor(), EAIFocusPriority::Gameplay);
 
 	if (ControlledBoss->IsCastingSkill() || ControlledBoss->IsCharging())
+	{
+		StopMovement();
+		return;
+	}
+
+	if (ControlledBoss->TryTeleportNearCombatTargetIfTooFar())
 	{
 		StopMovement();
 		return;
@@ -66,4 +80,42 @@ bool AElysiaBossAIController::TryCastBestSkill()
 	}
 
 	return false;
+}
+
+AActor* AElysiaBossAIController::FindFallbackCombatTarget() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	if (const APlayerController* PlayerController = World->GetFirstPlayerController())
+	{
+		if (APawn* PlayerPawn = PlayerController->GetPawn(); IsValidCombatTarget(PlayerPawn))
+		{
+			return PlayerPawn;
+		}
+	}
+
+	for (TActorIterator<APawn> It(World); It; ++It)
+	{
+		if (IsValidCombatTarget(*It))
+		{
+			return *It;
+		}
+	}
+
+	return nullptr;
+}
+
+bool AElysiaBossAIController::IsValidCombatTarget(const AActor* Actor)
+{
+	if (!IsValid(Actor))
+	{
+		return false;
+	}
+
+	const ICombatInterface* CombatInterface = Cast<ICombatInterface>(Actor);
+	return CombatInterface && CombatInterface->IsPlayer() && !CombatInterface->IsDead();
 }

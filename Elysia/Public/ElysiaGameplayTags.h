@@ -38,6 +38,12 @@ public:
 	FGameplayTag Ability_Elysia_Skill;
 	FGameplayTag Ability_Elysia_Ultimate;
 	
+	// 角色状态
+	FGameplayTag Status_Elysia_Enhanced;
+	
+	// 技能冷却
+	FGameplayTag Cooldown_Elysia_Skill;
+	
 	// 动画事件
 	FGameplayTag Event_Montage_Elysia_NormalAttack;
 	

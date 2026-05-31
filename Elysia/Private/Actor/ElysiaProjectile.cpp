@@ -22,7 +22,8 @@ AElysiaProjectile::AElysiaProjectile()
 	Sphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Sphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 	Sphere->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Overlap);
-	Sphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	Sphere->SetCollisionResponseToChannel(ECC_Minion, ECR_Overlap);
+	Sphere->SetCollisionResponseToChannel(ECC_Boss, ECR_Overlap);
 	
 	// 设置移动组件
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovement");

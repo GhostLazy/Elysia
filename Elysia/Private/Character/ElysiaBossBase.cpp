@@ -9,12 +9,23 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Elysia/Elysia.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/CombatInterface.h"
+#include "NavigationSystem.h"
 
 AElysiaBossBase::AElysiaBossBase()
 {
 	EnemyType = EElysiaEnemyType::Boss;
 	AIControllerClass = AElysiaBossAIController::StaticClass();
+	
+	GetCapsuleComponent()->SetCollisionObjectType(ECC_Boss);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Minion, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
 }
 
 void AElysiaBossBase::Die()
@@ -168,6 +179,40 @@ bool AElysiaBossBase::TryCastBestAvailableSkill()
 	return TryCastSkill(AvailableSkills[0]->SkillType);
 }
 
+bool AElysiaBossBase::TryTeleportNearCombatTargetIfTooFar()
+{
+	if (!HasAuthority() || !bTeleportNearTargetWhenTooFar || bIsCastingSkill || bIsCharging || !HasValidCombatTarget())
+	{
+		return false;
+	}
+
+	if (GetDistanceToCombatTarget2D() <= TeleportTriggerDistance)
+	{
+		return false;
+	}
+
+	FVector TeleportLocation;
+	if (!TryFindTeleportLocationNearCombatTarget(TeleportLocation))
+	{
+		return false;
+	}
+
+	const AActor* TargetActor = CombatTarget.Get();
+	const FVector FacingDirection = TargetActor
+		? (TargetActor->GetActorLocation() - TeleportLocation).GetSafeNormal2D()
+		: GetActorForwardVector().GetSafeNormal2D();
+	const FRotator TeleportRotation = FacingDirection.IsNearlyZero()
+		? GetActorRotation()
+		: FacingDirection.Rotation();
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+	}
+
+	return TeleportTo(TeleportLocation, TeleportRotation, false, false);
+}
+
 void AElysiaBossBase::ApplyLaserDamageInDirection(const FVector& LaserOrigin, const FVector& LaserDirection, const FElysiaBossSkillSpec& SkillSpec)
 {
 	if (!HasAuthority() || !AbilitySystemComponent || !SkillSpec.DamageEffectClass)
@@ -201,6 +246,122 @@ const FElysiaBossSkillSpec* AElysiaBossBase::FindSkillSpec(EElysiaBossSkillType 
 	{
 		return SkillSpec.SkillType == SkillType;
 	});
+}
+
+bool AElysiaBossBase::TryFindTeleportLocationNearCombatTarget(FVector& OutTeleportLocation) const
+{
+	const AActor* TargetActor = CombatTarget.Get();
+	const UCapsuleComponent* BossCapsuleComponent = GetCapsuleComponent();
+	if (!TargetActor || !BossCapsuleComponent || TeleportTargetMaxRadius <= 0.f || TeleportMaxAttempts <= 0)
+	{
+		return false;
+	}
+
+	const float CapsuleRadius = BossCapsuleComponent->GetScaledCapsuleRadius();
+	const float CapsuleHalfHeight = BossCapsuleComponent->GetScaledCapsuleHalfHeight();
+	if (CapsuleRadius <= 0.f || CapsuleHalfHeight <= 0.f)
+	{
+		return false;
+	}
+
+	UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	if (!NavSystem)
+	{
+		return false;
+	}
+
+	const float MaxRadius = FMath::Max(0.f, TeleportTargetMaxRadius);
+	const float MinRadius = FMath::Clamp(TeleportTargetMinRadius, 0.f, MaxRadius);
+	const float MinRadiusSquared = FMath::Square(MinRadius);
+	const float MaxRadiusSquared = FMath::Square(MaxRadius);
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+
+	for (int32 AttemptIndex = 0; AttemptIndex < TeleportMaxAttempts; ++AttemptIndex)
+	{
+		const float Radius = FMath::Sqrt(FMath::FRandRange(MinRadiusSquared, MaxRadiusSquared));
+		const float AngleRadians = FMath::FRandRange(0.f, 2.f * PI);
+		const FVector CandidateLocation = TargetLocation + FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.f);
+
+		FNavLocation NavLocation;
+		if (!NavSystem->ProjectPointToNavigation(CandidateLocation, NavLocation, TeleportNavProjectExtent))
+		{
+			continue;
+		}
+
+		FVector GroundedTeleportLocation;
+		if (TryProjectTeleportCandidateToGround(NavLocation.Location, CapsuleHalfHeight, GroundedTeleportLocation)
+			&& IsTeleportLocationClear(GroundedTeleportLocation, CapsuleRadius, CapsuleHalfHeight, TargetActor))
+		{
+			OutTeleportLocation = GroundedTeleportLocation;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool AElysiaBossBase::TryProjectTeleportCandidateToGround(const FVector& CandidateLocation, float CapsuleHalfHeight, FVector& OutTeleportLocation) const
+{
+	if (!GetWorld())
+	{
+		return false;
+	}
+
+	FHitResult GroundHit;
+	const FVector TraceStart = CandidateLocation + FVector::UpVector * TeleportGroundTraceUpDistance;
+	const FVector TraceEnd = CandidateLocation - FVector::UpVector * TeleportGroundTraceDownDistance;
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaBossTeleportGroundTrace), false);
+	QueryParams.AddIgnoredActor(this);
+
+	if (!GetWorld()->LineTraceSingleByObjectType(GroundHit, TraceStart, TraceEnd, ObjectQueryParams, QueryParams)
+		|| !GroundHit.bBlockingHit)
+	{
+		return false;
+	}
+
+	OutTeleportLocation = GroundHit.ImpactPoint + FVector::UpVector * (CapsuleHalfHeight + TeleportGroundClearance);
+	return true;
+}
+
+bool AElysiaBossBase::IsTeleportLocationClear(const FVector& TeleportLocation, float CapsuleRadius, float CapsuleHalfHeight, const AActor* TargetActor) const
+{
+	if (!GetWorld())
+	{
+		return false;
+	}
+
+	const float MinAllowedRadius = FMath::Clamp(TeleportTargetMinRadius, 0.f, FMath::Max(0.f, TeleportTargetMaxRadius));
+	if (TargetActor && FVector::DistSquared2D(TeleportLocation, TargetActor->GetActorLocation()) < FMath::Square(MinAllowedRadius))
+	{
+		return false;
+	}
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Player);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Minion);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Boss);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaBossTeleportOverlap), false);
+	QueryParams.AddIgnoredActor(this);
+	if (TargetActor)
+	{
+		QueryParams.AddIgnoredActor(TargetActor);
+	}
+
+	const float TestHalfHeight = FMath::Max(1.f, CapsuleHalfHeight - TeleportGroundClearance);
+	return !GetWorld()->OverlapAnyTestByObjectType(
+		TeleportLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeCapsule(CapsuleRadius, TestHalfHeight),
+		QueryParams);
 }
 
 bool AElysiaBossBase::TryApplyDamageToActor(AActor* TargetActor, TSubclassOf<UGameplayEffect> DamageEffectClass, float DamageEffectLevel)

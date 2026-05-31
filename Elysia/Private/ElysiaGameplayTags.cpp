@@ -30,6 +30,12 @@ void FElysiaGameplayTags::InitNativeGameplayTags()
 	GameplayTags.Ability_Elysia_Skill = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Elysia.Skill"));
 	GameplayTags.Ability_Elysia_Ultimate = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Ability.Elysia.Ultimate"));
 	
+	// 角色状态
+	GameplayTags.Status_Elysia_Enhanced = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Status.Elysia.Enhanced"));
+	
+	// 技能冷却
+	GameplayTags.Cooldown_Elysia_Skill = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Cooldown.Elysia.Skill"));
+	
 	// 动画事件
 	GameplayTags.Event_Montage_Elysia_NormalAttack = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Event.Montage.Elysia.NormalAttack"));
 }

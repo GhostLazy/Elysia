@@ -35,6 +35,9 @@ protected:
 
 private:
 
+	AActor* FindFallbackCombatTarget() const;
+	static bool IsValidCombatTarget(const AActor* Actor);
+
 	FTimerHandle RetargetTimerHandle;
 	
 };

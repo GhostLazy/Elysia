@@ -32,13 +32,14 @@ AElysiaEnemy::AElysiaEnemy()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 	
-	// 两套碰撞逻辑，分别处理
+	// 碰撞逻辑处理
 	GetCapsuleComponent()->SetCollisionObjectType(ECC_Minion);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Boss, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AElysiaMinionAIController::StaticClass();
