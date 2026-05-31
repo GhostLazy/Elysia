@@ -8,9 +8,7 @@
 
 UElysiaNormalAttackEnhance::UElysiaNormalAttackEnhance()
 {
-	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	CooldownDuration = 24.f;
 }
 
 void UElysiaNormalAttackEnhance::ActivateAbility(
@@ -50,31 +48,4 @@ void UElysiaNormalAttackEnhance::ActivateAbility(
 	}
 
 	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-}
-
-void UElysiaNormalAttackEnhance::ApplyCooldown(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	UGameplayEffect* CooldownEffect = GetCooldownGameplayEffect();
-	UAbilitySystemComponent* AbilitySystemComponent = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!CooldownEffect || !AbilitySystemComponent)
-	{
-		return;
-	}
-
-	FGameplayEffectSpecHandle CooldownSpecHandle = MakeOutgoingGameplayEffectSpec(
-		Handle,
-		ActorInfo,
-		ActivationInfo,
-		CooldownEffect->GetClass(),
-		GetAbilityLevel(Handle, ActorInfo));
-	if (!CooldownSpecHandle.IsValid())
-	{
-		return;
-	}
-
-	CooldownSpecHandle.Data->SetDuration(FMath::Max(0.f, CooldownDuration), true);
-	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*CooldownSpecHandle.Data.Get());
 }

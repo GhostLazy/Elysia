@@ -3,24 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbility.h"
+#include "AbilitySystem/Abilities/ElysiaOffensiveGameplayAbility.h"
 #include "ElysiaNormalAttackEnhance.generated.h"
 
 class UGameplayEffect;
 
 UCLASS()
-class ELYSIA_API UElysiaNormalAttackEnhance : public UGameplayAbility
+class ELYSIA_API UElysiaNormalAttackEnhance : public UElysiaOffensiveGameplayAbility
 {
 	GENERATED_BODY()
 
 public:
 
 	UElysiaNormalAttackEnhance();
-	
-	virtual void ApplyCooldown(
-		const FGameplayAbilitySpecHandle Handle,
-		const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo) const override;
 
 protected:
 
@@ -32,8 +27,5 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
 	TSubclassOf<UGameplayEffect> EnhanceEffectClass;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill", meta = (ClampMin = "0.0"))
-	float CooldownDuration = 24.f;
 
 };
