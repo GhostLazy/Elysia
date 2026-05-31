@@ -2,6 +2,8 @@
 
 
 #include "Player/ElysiaPlayerController.h"
+#include "AbilitySystemComponent.h"
+#include "ElysiaGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
@@ -32,7 +34,14 @@ void AElysiaPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 	
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
-	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AElysiaPlayerController::Move);
+	if (MoveAction)
+	{
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AElysiaPlayerController::Move);
+	}
+	if (SkillAction)
+	{
+		EnhancedInputComponent->BindAction(SkillAction, ETriggerEvent::Started, this, &AElysiaPlayerController::ActivateSkill);
+	}
 }
 
 void AElysiaPlayerController::Move(const FInputActionValue& InputActionValue)
@@ -49,5 +58,34 @@ void AElysiaPlayerController::Move(const FInputActionValue& InputActionValue)
 	
 		ElysiaCharacter->AddMovementInput(ForwardDirection, InputVector.Y);
 		ElysiaCharacter->AddMovementInput(RightDirection, InputVector.X);
+	}
+}
+
+void AElysiaPlayerController::ActivateSkill()
+{
+	if (HasAuthority())
+	{
+		TryActivateSkill();
+		return;
+	}
+
+	ServerActivateSkill();
+}
+
+void AElysiaPlayerController::ServerActivateSkill_Implementation()
+{
+	TryActivateSkill();
+}
+
+void AElysiaPlayerController::TryActivateSkill()
+{
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetCharacter()))
+	{
+		if (UAbilitySystemComponent* AbilitySystemComponent = ElysiaCharacter->GetAbilitySystemComponent())
+		{
+			FGameplayTagContainer SkillTags;
+			SkillTags.AddTag(FElysiaGameplayTags::Get().Ability_Elysia_Skill);
+			AbilitySystemComponent->TryActivateAbilitiesByTag(SkillTags);
+		}
 	}
 }

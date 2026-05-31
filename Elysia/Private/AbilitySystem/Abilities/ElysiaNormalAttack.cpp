@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
+#include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Actor/ElysiaProjectile.h"
 #include "Character/ElysiaCharacter.h"
@@ -51,6 +52,15 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 		const int32 BaseProjectileCount = FMath::Max(1, GetBaseProjectileCount(ProjectileCountByLevel));
 		const bool bEvolved = IsWeaponEvolved();
 		const int32 ArrowsPerVolley = bEvolved ? 2 : 1;
+		UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponentFromActorInfo();
+		const bool bEnhanced = AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(FElysiaGameplayTags::Get().Status_Elysia_Enhanced);
+		if (bEnhanced)
+		{
+			if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(AbilitySystemComponent))
+			{
+				ElysiaASC->ReduceCooldownRemaining(FElysiaGameplayTags::Get().Cooldown_Elysia_Skill, 0.1f);
+			}
+		}
 
 		// 按武器等级执行 1/2/3/5 次连发；进化后每次连发改为并排双箭
 		for (int32 VolleyIndex = 0; VolleyIndex < BaseProjectileCount; ++VolleyIndex)
@@ -58,13 +68,13 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 			const float Delay = BurstShotInterval * static_cast<float>(VolleyIndex);
 			if (Delay <= 0.f)
 			{
-				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley);
+				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced);
 				continue;
 			}
 
-			FTimerDelegate VolleyDelegate = FTimerDelegate::CreateWeakLambda(this, [this, SpawnLocation, BaseRotation, ArrowsPerVolley]()
+			FTimerDelegate VolleyDelegate = FTimerDelegate::CreateWeakLambda(this, [this, SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced]()
 			{
-				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley);
+				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced);
 			});
 			FTimerHandle VolleyTimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(VolleyTimerHandle, VolleyDelegate, Delay, false);
@@ -99,10 +109,17 @@ void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
 	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::FindTargetAndPlayMontage, Interval, true);
 }
 
-void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley) const
+void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley, bool bShouldPenetrate) const
 {
 	const FVector RightVector = SpawnRotation.RotateVector(FVector::RightVector);
 	const float PairHalfWidth = ArrowsPerVolley > 1 ? EvolvedPairSpacing * 0.5f : 0.f;
+	const TSubclassOf<AElysiaProjectile> ProjectileClassToSpawn = bShouldPenetrate && EnhancedProjectileClass
+		? EnhancedProjectileClass
+		: ProjectileClass;
+	if (!ProjectileClassToSpawn)
+	{
+		return;
+	}
 
 	// 进化前只发 1 支；进化后同一轮改为并排双箭
 	for (int32 ArrowIndex = 0; ArrowIndex < ArrowsPerVolley; ++ArrowIndex)
@@ -118,11 +135,17 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 
 		// 设置箭矢伤害参数并生成箭矢
 		AElysiaProjectile* Projectile = GetWorld()->SpawnActorDeferred<AElysiaProjectile>(
-			ProjectileClass,
+			ProjectileClassToSpawn,
 			SpawnTransform,
 			GetOwningActorFromActorInfo(),
 			Cast<APawn>(GetOwningActorFromActorInfo()),
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		if (!Projectile)
+		{
+			continue;
+		}
+
+		Projectile->SetIsPenetrate(bShouldPenetrate);
 		const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
 		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
 			DamageEffectClass,

@@ -33,6 +33,15 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
-	
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> SkillAction;
+
 	void Move(const FInputActionValue& InputActionValue);
+	void ActivateSkill();
+
+	UFUNCTION(Server, Reliable)
+	void ServerActivateSkill();
+
+	void TryActivateSkill();
 };

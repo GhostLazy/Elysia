@@ -33,7 +33,7 @@ protected:
 	void ResetTimer(float NewAttackSpeed);
 	
 	// 执行一次齐射；进化前为单箭，进化后为并排双箭
-	void FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley) const;
+	void FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley, bool bShouldPenetrate) const;
 	
 	UPROPERTY()
 	FOnAttributeChangeSignature OnAttackSpeedChanged;
@@ -43,6 +43,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TArray<int32> ProjectileCountByLevel = { 1, 2, 3, 5 };
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AElysiaProjectile> EnhancedProjectileClass;
 
 	// 同一轮普攻内，多次连发之间的时间间隔
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
