@@ -60,18 +60,36 @@ void AElysiaProjectile::HandleSphereOverlapBegin(UPrimitiveComponent* Overlapped
 	{
 		return;
 	}
-	
-	if (UElysiaAbilitySystemComponent* TargetASC = Cast<UElysiaAbilitySystemComponent>(
-		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor)))
+
+	HandleEnemyHit(OtherActor);
+}
+
+void AElysiaProjectile::HandleEnemyHit(AActor* OtherActor)
+{
+	if (ApplyDamageToActor(OtherActor) && bPenetrate)
 	{
-		TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
-		if (bPenetrate)
-		{
-			HitActors.Add(HitActor);
-		}
+		HitActors.Add(TWeakObjectPtr<AActor>(OtherActor));
 	}
+
 	if (!bPenetrate)
 	{
 		Destroy();
 	}
+}
+
+bool AElysiaProjectile::ApplyDamageToActor(AActor* TargetActor)
+{
+	if (!HasAuthority() || !IsValid(TargetActor) || !EffectSpecHandle.IsValid())
+	{
+		return false;
+	}
+
+	if (UElysiaAbilitySystemComponent* TargetASC = Cast<UElysiaAbilitySystemComponent>(
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor)))
+	{
+		TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+		return true;
+	}
+
+	return false;
 }
