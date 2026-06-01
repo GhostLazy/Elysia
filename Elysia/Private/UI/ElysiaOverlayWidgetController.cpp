@@ -3,6 +3,7 @@
 
 #include "UI/ElysiaOverlayWidgetController.h"
 
+#include "ElysiaGameplayTags.h"
 #include "Game/ElysiaGameState.h"
 #include "Player/ElysiaPlayerState.h"
 
@@ -30,6 +31,17 @@ void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 		HandleTotalScoreChanged(ElysiaGameState->GetTotalScore());
 		HandleGameProgressPercentChanged(ElysiaGameState->GetNormalPhaseTotalSeconds());
 	}
+}
+
+FElysiaCooldownInfo UElysiaOverlayWidgetController::GetSkillCooldownInfo() const
+{
+	const UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(AbilitySystemComponent);
+	if (!ElysiaASC)
+	{
+		return FElysiaCooldownInfo();
+	}
+
+	return ElysiaASC->GetCooldownInfo(FElysiaGameplayTags::Get().Cooldown_Elysia_Skill);
 }
 
 void UElysiaOverlayWidgetController::HandleXPChanged(int32 NewXP) const

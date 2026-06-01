@@ -12,6 +12,7 @@ local M = UnLua.Class()
 function M:WidgetControllerSet()
     self.WBP_XPBar:SetWidgetController(self.WidgetController)
     self.WBP_GameStateBar:SetWidgetController(self.WidgetController)
+    self.WBP_SkillGlobe:SetWidgetController(self.WidgetController)
     
     local ElysiaOverWidgetController = UE.UElysiaOverlayWidgetController.Cast(self.WidgetController, UE.UElysiaOverlayWidgetController.StaticClass())
     if ElysiaOverWidgetController then

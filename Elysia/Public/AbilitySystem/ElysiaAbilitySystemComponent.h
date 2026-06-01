@@ -7,6 +7,24 @@
 #include "GameplayTagContainer.h"
 #include "ElysiaAbilitySystemComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct ELYSIA_API FElysiaCooldownInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Cooldown")
+	bool bIsActive = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Cooldown")
+	float Remaining = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Cooldown")
+	float Duration = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Cooldown")
+	float Percent = 0.f;
+};
+
 /**
  * 
  */
@@ -25,6 +43,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Cooldown")
 	float GetCooldownRemaining(FGameplayTag CooldownTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "Cooldown")
+	bool GetCooldownRemainingAndDuration(FGameplayTag CooldownTag, float& OutRemaining, float& OutDuration) const;
+
+	UFUNCTION(BlueprintPure, Category = "Cooldown")
+	FElysiaCooldownInfo GetCooldownInfo(FGameplayTag CooldownTag) const;
 
 	void ReduceCooldownRemaining(FGameplayTag CooldownTag, float Reduction);
 	

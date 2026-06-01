@@ -48,9 +48,19 @@ bool UElysiaAbilitySystemComponent::IsCooldownActive(FGameplayTag CooldownTag) c
 
 float UElysiaAbilitySystemComponent::GetCooldownRemaining(FGameplayTag CooldownTag) const
 {
+	float Remaining = 0.f;
+	float Duration = 0.f;
+	GetCooldownRemainingAndDuration(CooldownTag, Remaining, Duration);
+	return Remaining;
+}
+
+bool UElysiaAbilitySystemComponent::GetCooldownRemainingAndDuration(FGameplayTag CooldownTag, float& OutRemaining, float& OutDuration) const
+{
 	if (!CooldownTag.IsValid())
 	{
-		return 0.f;
+		OutRemaining = 0.f;
+		OutDuration = 0.f;
+		return false;
 	}
 
 	FGameplayTagContainer CooldownTags;
@@ -59,13 +69,33 @@ float UElysiaAbilitySystemComponent::GetCooldownRemaining(FGameplayTag CooldownT
 	const FGameplayEffectQuery CooldownQuery = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(CooldownTags);
 	const TArray<TPair<float, float>> DurationAndTimeRemaining = GetActiveEffectsTimeRemainingAndDuration(CooldownQuery);
 
-	float LongestRemainingTime = 0.f;
+	OutRemaining = 0.f;
+	OutDuration = 0.f;
 	for (const TPair<float, float>& ActiveCooldownTime : DurationAndTimeRemaining)
 	{
-		LongestRemainingTime = FMath::Max(LongestRemainingTime, ActiveCooldownTime.Key);
+		const float Remaining = FMath::Max(0.f, ActiveCooldownTime.Key);
+		if (Remaining > OutRemaining)
+		{
+			OutRemaining = Remaining;
+			OutDuration = FMath::Max(0.f, ActiveCooldownTime.Value);
+		}
 	}
 
-	return LongestRemainingTime;
+	return OutRemaining > 0.f;
+}
+
+FElysiaCooldownInfo UElysiaAbilitySystemComponent::GetCooldownInfo(FGameplayTag CooldownTag) const
+{
+	FElysiaCooldownInfo CooldownInfo;
+	CooldownInfo.bIsActive = GetCooldownRemainingAndDuration(
+		CooldownTag,
+		CooldownInfo.Remaining,
+		CooldownInfo.Duration);
+	CooldownInfo.Percent = CooldownInfo.Duration > 0.f
+		? FMath::Clamp(CooldownInfo.Remaining / CooldownInfo.Duration, 0.f, 1.f)
+		: 0.f;
+
+	return CooldownInfo;
 }
 
 void UElysiaAbilitySystemComponent::ReduceCooldownRemaining(FGameplayTag CooldownTag, float Reduction)

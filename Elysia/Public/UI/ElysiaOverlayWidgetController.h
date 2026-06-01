@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "UI/ElysiaWidgetController.h"
 #include "ElysiaOverlayWidgetController.generated.h"
 
@@ -18,6 +19,9 @@ class ELYSIA_API UElysiaOverlayWidgetController : public UElysiaWidgetController
 public:
 
 	virtual void BindCallbacksToDependencies() override;
+
+	UFUNCTION(BlueprintPure, Category = "Cooldown")
+	FElysiaCooldownInfo GetSkillCooldownInfo() const;
 
 protected:
 

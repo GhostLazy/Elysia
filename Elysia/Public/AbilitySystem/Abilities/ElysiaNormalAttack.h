@@ -47,6 +47,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AElysiaProjectile> EnhancedProjectileClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon|Targeting", meta = (ClampMin = "0.0"))
+	float TargetSearchRadius = 1600.f;
+
 	// 同一轮普攻内，多次连发之间的时间间隔
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = "0.0"))
 	float BurstShotInterval = 0.1f;

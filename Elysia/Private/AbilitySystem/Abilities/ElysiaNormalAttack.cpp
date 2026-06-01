@@ -93,7 +93,7 @@ void UElysiaNormalAttack::FindTargetAndPlayMontage()
 		const FVector ActorLocation = ElysiaCharacter->GetActorLocation();
 
 		// 索敌并朝向目标，随后播放普攻蒙太奇
-		UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, 800, ActorLocation, FName("Enemy"));
+		UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, TargetSearchRadius, ActorLocation, FName("Enemy"));
 		TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, ActorLocation);
 
 		ElysiaCharacter->RotateToTarget(TargetActor);
