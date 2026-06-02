@@ -31,6 +31,8 @@ public:
 	virtual void Die() override;
 	FOnEnemyDiedSignature OnEnemyDied;
 	EElysiaEnemyType GetEnemyType() const { return EnemyType; }
+	int32 GetLevel() const { return Level; }
+	void SetLevel(int32 InLevel) { Level = FMath::Max(1, InLevel); }
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool HasOverlappingPlayers() const { return CurrentOverlappingPlayers.Num() > 0; }
@@ -51,6 +53,18 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	EElysiaEnemyType EnemyType = EElysiaEnemyType::Minion;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta = (ClampMin = "0"))
+	int32 MinionXPBallDropCount = 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta = (ClampMin = "0"))
+	int32 EliteXPBallDropCount = 5;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta = (ClampMin = "0"))
+	int32 BossXPBallDropCount = 10;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta = (ClampMin = "0.0"))
+	float XPBallDropScatterRadius = 80.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TSubclassOf<UGameplayEffect> ContactDamageEffectClass;
@@ -76,6 +90,7 @@ private:
 	void ClearActiveContactDamageEffects();
 	static bool IsValidDamageTargetActor(AActor* Actor);
 	void SpawnDeathRewards(const FVector& DropLocation);
+	int32 GetXPBallDropCount() const;
 
 	TSet<TWeakObjectPtr<AActor>> CurrentOverlappingPlayers;
 	TMap<TWeakObjectPtr<AActor>, FActiveGameplayEffectHandle> ActiveContactDamageEffects;

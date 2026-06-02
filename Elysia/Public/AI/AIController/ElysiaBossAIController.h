@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AI/AIController/ElysiaAIControllerBase.h"
-#include "Game/ElysiaGameTypes.h"
 #include "ElysiaBossAIController.generated.h"
 
 class AElysiaBossBase;
@@ -23,7 +22,7 @@ public:
 	AElysiaBossBase* GetControlledBoss() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	bool TryCastBestSkill();
+	bool TryActivateBestBossAbility();
 
 protected:
 	

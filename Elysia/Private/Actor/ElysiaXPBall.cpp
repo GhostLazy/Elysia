@@ -54,6 +54,7 @@ void AElysiaXPBall::BeginAttractionTo(AElysiaCharacter* Character)
 	{
 		bTargetHasSet = true;
 		SetLifeSpan(LifeSpan);
+		ProjectileMovement->MaxSpeed = MaxSpeed;
 		ProjectileMovement->HomingTargetComponent = TargetComponent;
 		ProjectileMovement->HomingAccelerationMagnitude = Acceleration;
 		ProjectileMovement->bIsHomingProjectile = true;

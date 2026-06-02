@@ -21,7 +21,7 @@ void AElysiaMagnetPickup::HandlePickedBy(AElysiaCharacter* Character)
 	{
 		if (IsValid(*It) && FVector::DistSquared2D(PlayerLocation, It->GetActorLocation()) <= RadiusSquared)
 		{
-			It->CollectBy(Character);
+			It->BeginAttractionTo(Character);
 		}
 	}
 }

@@ -33,7 +33,8 @@ public:
 	void StartEliteSpawn();
 	void StopEliteSpawn();
 	bool IsNormalSpawnActive() const { return bNormalSpawnEnabled; }
-	AElysiaEnemy* SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass);
+	void SetNormalEnemyLevel(int32 InLevel);
+	AElysiaEnemy* SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass, int32 EnemyLevel = 1);
 
 protected:
 
@@ -111,4 +112,5 @@ private:
 	FTimerHandle SpawnTimerHandle;
 	FTimerHandle EliteSpawnTimerHandle;
 	bool bNormalSpawnEnabled = false;
+	int32 NormalEnemyLevel = 1;
 };

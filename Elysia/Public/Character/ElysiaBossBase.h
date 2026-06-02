@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Character/ElysiaEnemy.h"
-#include "Game/ElysiaBossTypes.h"
 #include "ElysiaBossBase.generated.h"
 
-class AElysiaBossLaserActor;
+class UElysiaBossGameplayAbility;
+class UGameplayEffect;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnBossSkillFinishedSignature, EElysiaBossSkillType);
+DECLARE_MULTICAST_DELEGATE(FOnBossAbilityFinishedSignature);
 
 UCLASS()
 class ELYSIA_API AElysiaBossBase : public AElysiaEnemy
@@ -19,6 +19,7 @@ class ELYSIA_API AElysiaBossBase : public AElysiaEnemy
 public:
 	
 	AElysiaBossBase();
+	virtual void BeginPlay() override;
 	virtual void Die() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Boss")
@@ -31,40 +32,27 @@ public:
 	bool HasValidCombatTarget() const;
 
 	UFUNCTION(BlueprintPure, Category = "Boss")
-	bool IsCastingSkill() const { return bIsCastingSkill; }
-
-	UFUNCTION(BlueprintPure, Category = "Boss")
-	bool IsCharging() const { return bIsCharging; }
-
-	UFUNCTION(BlueprintPure, Category = "Boss")
 	float GetDistanceToCombatTarget2D() const;
 
 	UFUNCTION(BlueprintPure, Category = "Boss")
-	bool IsTargetInRangeForSkill(EElysiaBossSkillType SkillType) const;
-
-	UFUNCTION(BlueprintPure, Category = "Boss")
-	bool CanCastSkill(EElysiaBossSkillType SkillType) const;
+	bool IsUsingBossAbility() const { return ActiveBossAbilityCount > 0; }
 
 	UFUNCTION(BlueprintCallable, Category = "Boss")
-	bool TryCastSkill(EElysiaBossSkillType SkillType);
-
-	UFUNCTION(BlueprintCallable, Category = "Boss")
-	bool TryCastBestAvailableSkill();
+	bool TryActivateBestBossAbility();
 
 	UFUNCTION(BlueprintCallable, Category = "Boss|Teleport")
 	bool TryTeleportNearCombatTargetIfTooFar();
 
-	void ApplyLaserDamageInDirection(const FVector& LaserOrigin, const FVector& LaserDirection, const FElysiaBossSkillSpec& SkillSpec);
+	bool ApplyBossDamageToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> DamageEffectClass, float DamageEffectLevel) const;
+	void NotifyBossAbilityStarted(const UElysiaBossGameplayAbility* BossAbility);
+	void NotifyBossAbilityEnded(const UElysiaBossGameplayAbility* BossAbility);
 
-	FOnBossSkillFinishedSignature OnBossSkillFinished;
+	FOnBossAbilityFinishedSignature OnBossAbilityFinished;
 
 protected:
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss")
-	TArray<FElysiaBossSkillSpec> BossSkills;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0.0"))
-	float SkillFacingInterpSpeed = 12.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Abilities")
+	TArray<TSubclassOf<UElysiaBossGameplayAbility>> BossAbilityClasses;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Teleport")
 	bool bTeleportNearTargetWhenTooFar = true;
@@ -94,32 +82,12 @@ protected:
 	float TeleportGroundClearance = 10.f;
 
 private:
-	
-	const FElysiaBossSkillSpec* FindSkillSpec(EElysiaBossSkillType SkillType) const;
-	bool TryApplyDamageToActor(AActor* TargetActor, TSubclassOf<UGameplayEffect> DamageEffectClass, float DamageEffectLevel);
+
+	void GrantBossAbilities();
 	bool TryFindTeleportLocationNearCombatTarget(FVector& OutTeleportLocation) const;
 	bool TryProjectTeleportCandidateToGround(const FVector& CandidateLocation, float CapsuleHalfHeight, FVector& OutTeleportLocation) const;
 	bool IsTeleportLocationClear(const FVector& TeleportLocation, float CapsuleRadius, float CapsuleHalfHeight, const AActor* TargetActor) const;
-	void BeginSkillRecovery(float RecoveryTime, EElysiaBossSkillType SkillType);
-	void FinishRecovery();
-	void ExecuteSweepAOE();
-	void SpawnFixedLaser();
-	void BeginCharge();
-	void TickChargeMovement();
-	void StopCharge(bool bInterrupted);
-	void ClearBossSkillState();
-	FVector GetLockedSkillDirection() const;
 
 	TWeakObjectPtr<AActor> CombatTarget;
-	TWeakObjectPtr<AElysiaBossLaserActor> ActiveLaserActor;
-	TSet<TWeakObjectPtr<AActor>> ChargeHitTargets;
-	TMap<EElysiaBossSkillType, float> SkillCooldownEndTimeByType;
-	FTimerHandle SkillRecoveryTimerHandle;
-	FTimerHandle ChargeTickTimerHandle;
-	EElysiaBossSkillType CurrentSkillType = EElysiaBossSkillType::None;
-	FVector LockedSkillDirection = FVector::ForwardVector;
-	FVector ChargeStartLocation = FVector::ZeroVector;
-	bool bIsCastingSkill = false;
-	bool bIsCharging = false;
-	
+	int32 ActiveBossAbilityCount = 0;
 };

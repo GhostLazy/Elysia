@@ -96,15 +96,30 @@ void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
 		return;
 	}
 
-	if (EnemyType != EElysiaEnemyType::FinalBoss && XPBallClass)
+	const int32 XPBallDropCount = GetXPBallDropCount();
+	if (XPBallDropCount > 0 && XPBallClass)
 	{
-		FTransform SpawnTransform;
-		SpawnTransform.SetLocation(DropLocation);
-		if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
+		const int32 XPValue = XPRewards.GetValueAtLevel(Level);
+		for (int32 Index = 0; Index < XPBallDropCount; ++Index)
 		{
-			XPBall->SetXPValue(XPRewards.GetValueAtLevel(Level));
-			XPBall->SetColorByLevel(Level);
-			XPBall->FinishSpawning(SpawnTransform);
+			const float Angle = XPBallDropCount > 1
+				? 2.f * PI * static_cast<float>(Index) / static_cast<float>(XPBallDropCount)
+				: 0.f;
+			const float ScatterRadius = XPBallDropCount > 1
+				? FMath::FRandRange(0.f, XPBallDropScatterRadius)
+				: 0.f;
+			const FVector DropOffset = XPBallDropCount > 1
+				? FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * ScatterRadius
+				: FVector::ZeroVector;
+
+			FTransform SpawnTransform;
+			SpawnTransform.SetLocation(DropLocation + DropOffset);
+			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
+			{
+				XPBall->SetXPValue(XPValue);
+				XPBall->SetColorByLevel(Level);
+				XPBall->FinishSpawning(SpawnTransform);
+			}
 		}
 	}
 
@@ -120,6 +135,22 @@ void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
 		FTransform SpawnTransform;
 		SpawnTransform.SetLocation(DropLocation + FVector(-40.f, 0.f, 0.f));
 		GetWorld()->SpawnActor<AElysiaMagnetPickup>(MagnetPickupClass, SpawnTransform);
+	}
+}
+
+int32 AElysiaEnemy::GetXPBallDropCount() const
+{
+	switch (EnemyType)
+	{
+	case EElysiaEnemyType::Elite:
+		return FMath::Max(0, EliteXPBallDropCount);
+	case EElysiaEnemyType::Boss:
+		return FMath::Max(0, BossXPBallDropCount);
+	case EElysiaEnemyType::FinalBoss:
+		return 0;
+	case EElysiaEnemyType::Minion:
+	default:
+		return FMath::Max(0, MinionXPBallDropCount);
 	}
 }
 

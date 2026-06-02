@@ -69,8 +69,9 @@ void AElysiaSpawnManager::HandleSpawnTick()
 
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		if (GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClassToSpawn, SpawnLocation, FRotator::ZeroRotator, SpawnParameters))
+		if (AElysiaEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClassToSpawn, SpawnLocation, FRotator::ZeroRotator, SpawnParameters))
 		{
+			SpawnedEnemy->SetLevel(NormalEnemyLevel);
 			++SpawnedCount;
 		}
 	}
@@ -114,7 +115,12 @@ void AElysiaSpawnManager::StopEliteSpawn()
 	GetWorldTimerManager().ClearTimer(EliteSpawnTimerHandle);
 }
 
-AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass)
+void AElysiaSpawnManager::SetNormalEnemyLevel(int32 InLevel)
+{
+	NormalEnemyLevel = FMath::Max(1, InLevel);
+}
+
+AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass, int32 EnemyLevel)
 {
 	if (!HasAuthority() || !EnemyClass)
 	{
@@ -150,6 +156,8 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> E
 		{
 			continue;
 		}
+
+		SpawnedEnemy->SetLevel(EnemyLevel);
 
 		if (HasGroundBelowBoss(SpawnedEnemy->GetActorLocation(), CapsuleHalfHeight, SpawnedEnemy))
 		{
@@ -519,5 +527,11 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> E
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	return GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+	AElysiaEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+	if (SpawnedEnemy)
+	{
+		SpawnedEnemy->SetLevel(NormalEnemyLevel);
+	}
+
+	return SpawnedEnemy;
 }

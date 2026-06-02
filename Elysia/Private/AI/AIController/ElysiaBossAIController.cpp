@@ -32,7 +32,7 @@ void AElysiaBossAIController::UpdateBehavior()
 
 	SetFocus(GetTargetActor(), EAIFocusPriority::Gameplay);
 
-	if (ControlledBoss->IsCastingSkill() || ControlledBoss->IsCharging())
+	if (ControlledBoss->IsUsingBossAbility())
 	{
 		StopMovement();
 		return;
@@ -44,7 +44,7 @@ void AElysiaBossAIController::UpdateBehavior()
 		return;
 	}
 
-	if (TryCastBestSkill())
+	if (TryActivateBestBossAbility())
 	{
 		StopMovement();
 		return;
@@ -72,11 +72,11 @@ void AElysiaBossAIController::OnTargetActorChanged(AActor* NewTargetActor)
 	}
 }
 
-bool AElysiaBossAIController::TryCastBestSkill()
+bool AElysiaBossAIController::TryActivateBestBossAbility()
 {
 	if (AElysiaBossBase* ControlledBoss = GetControlledBoss())
 	{
-		return ControlledBoss->TryCastBestAvailableSkill();
+		return ControlledBoss->TryActivateBestBossAbility();
 	}
 
 	return false;

@@ -22,12 +22,3 @@ enum class EElysiaEnemyType : uint8
 	Boss,
 	FinalBoss
 };
-
-UENUM(BlueprintType)
-enum class EElysiaBossSkillType : uint8
-{
-	None,
-	SweepAOE,
-	FixedLaser,
-	Charge
-};

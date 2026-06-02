@@ -59,6 +59,7 @@ private:
 	void UpdateGameStateSnapshot() const;
 	int32 CalculateBossRoundScore(float BossDuration) const;
 	TSubclassOf<AElysiaEnemy> GetBossClassForRound(int32 BossRound) const;
+	int32 GetNormalEnemyLevelForWave(int32 NormalWave) const;
 	AElysiaGameState* GetElysiaGameState() const;
 
 	UPROPERTY()

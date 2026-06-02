@@ -48,6 +48,7 @@ void AElysiaGameModeBase::StartRun()
 
 	if (SpawnManager)
 	{
+		SpawnManager->SetNormalEnemyLevel(GetNormalEnemyLevelForWave(1));
 		SpawnManager->StartNormalSpawn();
 		SpawnManager->StartEliteSpawn();
 	}
@@ -113,7 +114,7 @@ void AElysiaGameModeBase::EnterBossBattle(int32 BossRound)
 		SpawnManager->StopEliteSpawn();
 	}
 
-	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound)) : nullptr)
+	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
@@ -137,7 +138,7 @@ void AElysiaGameModeBase::EnterFinalBossBattle(int32 BossRound)
 		SpawnManager->StopNormalSpawn();
 	}
 
-	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound)) : nullptr)
+	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
@@ -158,6 +159,7 @@ void AElysiaGameModeBase::ResumeNormalPhase()
 
 	if (SpawnManager)
 	{
+		SpawnManager->SetNormalEnemyLevel(GetNormalEnemyLevelForWave(TriggeredBossRounds + 1));
 		SpawnManager->StartEliteSpawn();
 		SpawnManager->StartNormalSpawn();
 	}
@@ -235,8 +237,12 @@ TSubclassOf<AElysiaEnemy> AElysiaGameModeBase::GetBossClassForRound(int32 BossRo
 	return BossRoundClasses[BossIndex];
 }
 
+int32 AElysiaGameModeBase::GetNormalEnemyLevelForWave(int32 NormalWave) const
+{
+	return NormalWave <= 2 ? 1 : 2;
+}
+
 AElysiaGameState* AElysiaGameModeBase::GetElysiaGameState() const
 {
 	return GetGameState<AElysiaGameState>();
 }
-
