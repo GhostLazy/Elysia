@@ -28,7 +28,7 @@ void AElysiaExplosiveProjectile::HandleEnemyHit(AActor* OtherActor)
 		ActorsToIgnore,
 		ExplosionRadius,
 		GetActorLocation(),
-		FName("Enemy"));
+		FName("Damageable"));
 
 	bool bAppliedDamage = false;
 	for (AActor* OverlapActor : OverlapActors)

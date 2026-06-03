@@ -7,6 +7,7 @@
 #include "ElysiaSpawnManager.generated.h"
 
 class AElysiaEnemy;
+class AElysiaTreasureChest;
 
 USTRUCT(BlueprintType)
 struct FElysiaSpawnEntry
@@ -32,6 +33,8 @@ public:
 	void StopNormalSpawn();
 	void StartEliteSpawn();
 	void StopEliteSpawn();
+	void StartTreasureChestSpawn();
+	void StopTreasureChestSpawn();
 	bool IsNormalSpawnActive() const { return bNormalSpawnEnabled; }
 	void SetNormalEnemyLevel(int32 InLevel);
 	AElysiaEnemy* SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass, int32 EnemyLevel = 1);
@@ -91,10 +94,35 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "0.0"))
 	float BossPostSpawnGroundCheckDistance = 300.f;
 
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest")
+	TSubclassOf<AElysiaTreasureChest> TreasureChestClass;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "0.1"))
+	float TreasureChestSpawnInterval = 5.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "0.0"))
+	float TreasureChestRespawnDelay = 8.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "0.0"))
+	float TreasureChestMinSpawnDistance = 1600.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "0.0"))
+	float TreasureChestMaxSpawnDistance = 2600.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest")
+	FVector TreasureChestNavProjectExtent = FVector(300.f, 300.f, 800.f);
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "1"))
+	int32 TreasureChestMaxSpawnAttempts = 16;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Treasure Chest", meta = (ClampMin = "0.0"))
+	float TreasureChestSpawnClearanceRadius = 160.f;
+
 private:
 
 	void HandleSpawnTick();
 	void HandleEliteSpawnTick();
+	void HandleTreasureChestSpawnTick();
 	int32 CountAliveMinions() const;
 	APawn* FindSpawnTargetPlayer() const;
 	TSubclassOf<AElysiaEnemy> ChooseEnemyClassToSpawn() const;
@@ -108,9 +136,19 @@ private:
 	bool GetEnemyCapsuleSize(TSubclassOf<AElysiaEnemy> EnemyClass, float& OutCapsuleRadius, float& OutCapsuleHalfHeight) const;
 	FVector GenerateSpawnOffsetInBand() const;
 	AElysiaEnemy* SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> EnemyClass);
+	AElysiaTreasureChest* FindExistingTreasureChest();
+	AElysiaTreasureChest* SpawnTreasureChest(const FVector& SpawnLocation);
+	bool TryFindTreasureChestSpawnLocation(const FVector& PlayerLocation, FVector& OutSpawnLocation) const;
+	bool IsTreasureChestSpawnLocationClear(const FVector& SpawnLocation, const AActor* PlayerActor) const;
+	FVector GenerateTreasureChestSpawnOffset() const;
+	void HandleTreasureChestOpened(AElysiaTreasureChest* OpenedChest);
 
 	FTimerHandle SpawnTimerHandle;
 	FTimerHandle EliteSpawnTimerHandle;
+	FTimerHandle TreasureChestSpawnTimerHandle;
+	TWeakObjectPtr<AElysiaTreasureChest> ActiveTreasureChest;
 	bool bNormalSpawnEnabled = false;
+	bool bTreasureChestSpawnEnabled = false;
 	int32 NormalEnemyLevel = 1;
+	float NextTreasureChestSpawnTime = 0.f;
 };

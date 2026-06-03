@@ -7,6 +7,7 @@
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Interface/CombatInterface.h"
 
 AElysiaProjectile::AElysiaProjectile()
 {
@@ -50,7 +51,9 @@ void AElysiaProjectile::HandleSphereOverlapBegin(UPrimitiveComponent* Overlapped
                                                  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                                  const FHitResult& SweepResult)
 {
-	if (!HasAuthority() || !IsValid(OtherActor) || !OtherActor->ActorHasTag(FName("Enemy")))
+	const ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor);
+	if (!HasAuthority() || !IsValid(OtherActor) || !CombatInterface
+		|| !CombatInterface->HasTag(FName("Damageable")) || CombatInterface->IsDead())
 	{
 		return;
 	}

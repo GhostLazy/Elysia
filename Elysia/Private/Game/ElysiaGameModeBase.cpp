@@ -54,6 +54,7 @@ void AElysiaGameModeBase::StartRun()
 		SpawnManager->SetNormalEnemyLevel(GetNormalEnemyLevelForWave(1));
 		SpawnManager->StartNormalSpawn();
 		SpawnManager->StartEliteSpawn();
+		SpawnManager->StartTreasureChestSpawn();
 	}
 
 	if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
@@ -217,6 +218,7 @@ void AElysiaGameModeBase::FinishRun()
 	{
 		SpawnManager->StopEliteSpawn();
 		SpawnManager->StopNormalSpawn();
+		SpawnManager->StopTreasureChestSpawn();
 	}
 
 	UpdateGameStateSnapshot();

@@ -3,6 +3,7 @@
 
 #include "Game/ElysiaSpawnManager.h"
 #include "AI/NavigationSystemBase.h"
+#include "Actor/ElysiaTreasureChest.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "Character/ElysiaEnemy.h"
 #include "Components/CapsuleComponent.h"
@@ -110,6 +111,34 @@ void AElysiaSpawnManager::StartEliteSpawn()
 void AElysiaSpawnManager::StopEliteSpawn()
 {
 	GetWorldTimerManager().ClearTimer(EliteSpawnTimerHandle);
+}
+
+void AElysiaSpawnManager::StartTreasureChestSpawn()
+{
+	if (!HasAuthority() || !TreasureChestClass)
+	{
+		return;
+	}
+
+	bTreasureChestSpawnEnabled = true;
+	NextTreasureChestSpawnTime = 0.f;
+	if (!GetWorldTimerManager().IsTimerActive(TreasureChestSpawnTimerHandle))
+	{
+		GetWorldTimerManager().SetTimer(
+			TreasureChestSpawnTimerHandle,
+			this,
+			&AElysiaSpawnManager::HandleTreasureChestSpawnTick,
+			TreasureChestSpawnInterval,
+			true);
+	}
+
+	HandleTreasureChestSpawnTick();
+}
+
+void AElysiaSpawnManager::StopTreasureChestSpawn()
+{
+	bTreasureChestSpawnEnabled = false;
+	GetWorldTimerManager().ClearTimer(TreasureChestSpawnTimerHandle);
 }
 
 void AElysiaSpawnManager::SetNormalEnemyLevel(int32 InLevel)
@@ -503,6 +532,40 @@ void AElysiaSpawnManager::HandleEliteSpawnTick()
 	SpawnEnemyOfClass(ChooseEliteClassToSpawn());
 }
 
+void AElysiaSpawnManager::HandleTreasureChestSpawnTick()
+{
+	if (!HasAuthority() || !bTreasureChestSpawnEnabled || !TreasureChestClass)
+	{
+		return;
+	}
+
+	if (FindExistingTreasureChest())
+	{
+		return;
+	}
+
+	if (GetWorld()->GetTimeSeconds() < NextTreasureChestSpawnTime)
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = FindSpawnTargetPlayer();
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	for (int32 AttemptIndex = 0; AttemptIndex < TreasureChestMaxSpawnAttempts; ++AttemptIndex)
+	{
+		FVector SpawnLocation;
+		if (TryFindTreasureChestSpawnLocation(PlayerPawn->GetActorLocation(), SpawnLocation))
+		{
+			SpawnTreasureChest(SpawnLocation);
+			return;
+		}
+	}
+}
+
 AElysiaEnemy* AElysiaSpawnManager::SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> EnemyClass)
 {
 	if (!HasAuthority() || !EnemyClass)
@@ -531,4 +594,126 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnEnemyOfClass(TSubclassOf<AElysiaEnemy> E
 	}
 
 	return SpawnedEnemy;
+}
+
+AElysiaTreasureChest* AElysiaSpawnManager::FindExistingTreasureChest()
+{
+	if (ActiveTreasureChest.IsValid() && !ActiveTreasureChest->IsOpened())
+	{
+		return ActiveTreasureChest.Get();
+	}
+
+	ActiveTreasureChest = nullptr;
+	for (TActorIterator<AElysiaTreasureChest> It(GetWorld()); It; ++It)
+	{
+		if (!IsValid(*It) || It->IsOpened())
+		{
+			continue;
+		}
+
+		ActiveTreasureChest = *It;
+		It->OnTreasureChestOpened.RemoveAll(this);
+		It->OnTreasureChestOpened.AddUObject(this, &AElysiaSpawnManager::HandleTreasureChestOpened);
+		return *It;
+	}
+
+	return nullptr;
+}
+
+AElysiaTreasureChest* AElysiaSpawnManager::SpawnTreasureChest(const FVector& SpawnLocation)
+{
+	if (!TreasureChestClass)
+	{
+		return nullptr;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+	const FRotator SpawnRotation(0.f, FMath::FRandRange(0.f, 360.f), 0.f);
+	AElysiaTreasureChest* SpawnedChest = GetWorld()->SpawnActor<AElysiaTreasureChest>(
+		TreasureChestClass,
+		SpawnLocation,
+		SpawnRotation,
+		SpawnParameters);
+	if (SpawnedChest)
+	{
+		ActiveTreasureChest = SpawnedChest;
+		SpawnedChest->OnTreasureChestOpened.RemoveAll(this);
+		SpawnedChest->OnTreasureChestOpened.AddUObject(this, &AElysiaSpawnManager::HandleTreasureChestOpened);
+	}
+
+	return SpawnedChest;
+}
+
+bool AElysiaSpawnManager::TryFindTreasureChestSpawnLocation(const FVector& PlayerLocation, FVector& OutSpawnLocation) const
+{
+	UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	if (!NavSystem)
+	{
+		return false;
+	}
+
+	const FVector CandidateLocation = PlayerLocation + GenerateTreasureChestSpawnOffset();
+	FNavLocation NavLocation;
+	if (!NavSystem->ProjectPointToNavigation(CandidateLocation, NavLocation, TreasureChestNavProjectExtent))
+	{
+		return false;
+	}
+
+	if (!IsTreasureChestSpawnLocationClear(NavLocation.Location, FindSpawnTargetPlayer()))
+	{
+		return false;
+	}
+
+	OutSpawnLocation = NavLocation.Location;
+	return true;
+}
+
+bool AElysiaSpawnManager::IsTreasureChestSpawnLocationClear(const FVector& SpawnLocation, const AActor* PlayerActor) const
+{
+	if (PlayerActor && FVector::DistSquared2D(SpawnLocation, PlayerActor->GetActorLocation()) < FMath::Square(TreasureChestMinSpawnDistance))
+	{
+		return false;
+	}
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Player);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Minion);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Boss);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaTreasureChestSpawnOverlap), false);
+	QueryParams.AddIgnoredActor(this);
+	if (PlayerActor)
+	{
+		QueryParams.AddIgnoredActor(PlayerActor);
+	}
+
+	return !GetWorld()->OverlapAnyTestByObjectType(
+		SpawnLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(TreasureChestSpawnClearanceRadius),
+		QueryParams);
+}
+
+FVector AElysiaSpawnManager::GenerateTreasureChestSpawnOffset() const
+{
+	const float MinRadius = FMath::Max(0.f, TreasureChestMinSpawnDistance);
+	const float MaxRadius = FMath::Max(MinRadius, TreasureChestMaxSpawnDistance);
+	const float Radius = FMath::Sqrt(FMath::FRandRange(FMath::Square(MinRadius), FMath::Square(MaxRadius)));
+	const float AngleRadians = FMath::FRandRange(0.f, 2.f * PI);
+	return FVector(FMath::Cos(AngleRadians) * Radius, FMath::Sin(AngleRadians) * Radius, 0.f);
+}
+
+void AElysiaSpawnManager::HandleTreasureChestOpened(AElysiaTreasureChest* OpenedChest)
+{
+	if (ActiveTreasureChest.Get() == OpenedChest)
+	{
+		ActiveTreasureChest = nullptr;
+	}
+
+	NextTreasureChestSpawnTime = GetWorld()->GetTimeSeconds() + TreasureChestRespawnDelay;
 }

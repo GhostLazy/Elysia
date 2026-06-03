@@ -223,7 +223,7 @@ AActor* UElysiaSmartBulletAssistant::FindTarget(const FVector& Origin) const
 	}
 
 	TArray<AActor*> OverlapActors;
-	UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, TargetSearchRadius, Origin, FName("Enemy"));
+	UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, TargetSearchRadius, Origin, FName("Damageable"));
 	return UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, Origin);
 }
 
