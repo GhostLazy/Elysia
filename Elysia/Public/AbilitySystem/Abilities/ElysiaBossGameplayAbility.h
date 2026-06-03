@@ -33,12 +33,6 @@ public:
 		const FGameplayTagContainer* TargetTags = nullptr,
 		FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 
-	virtual void ApplyCooldown(
-		const FGameplayAbilitySpecHandle Handle,
-		const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo) const override;
-
-	float GetSelectionWeight() const { return Weight; }
 	bool IsTargetInRange(const AElysiaBossBase* Boss) const;
 
 protected:
@@ -83,9 +77,6 @@ protected:
 	void OnBossAbilityRecovered(AElysiaBossBase* Boss);
 	virtual void OnBossAbilityRecovered_Implementation(AElysiaBossBase* Boss);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|AI", meta = (ClampMin = "0.0"))
-	float Weight = 1.f;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Range", meta = (ClampMin = "0.0"))
 	float MinRange = 0.f;
 
@@ -106,9 +97,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Damage", meta = (ClampMin = "0.0"))
 	float DamageEffectLevel = 1.f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Cooldown", meta = (ClampMin = "0.0"))
-	float CooldownDuration = 3.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
 	TObjectPtr<USoundBase> WindupSound;

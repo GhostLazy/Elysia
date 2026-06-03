@@ -3,6 +3,9 @@
 
 #include "UI/ElysiaOverlayWidgetController.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystem/ElysiaAttributeSet.h"
+#include "Character/ElysiaEnemy.h"
 #include "ElysiaGameplayTags.h"
 #include "Game/ElysiaGameState.h"
 #include "Player/ElysiaPlayerState.h"
@@ -25,11 +28,14 @@ void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 	{
 		ElysiaGameState->OnTotalScoreChanged.RemoveAll(this);
 		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.RemoveAll(this);
+		ElysiaGameState->OnCurrentBossChanged.RemoveAll(this);
 		ElysiaGameState->OnTotalScoreChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleTotalScoreChanged);
 		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleGameProgressPercentChanged);
+		ElysiaGameState->OnCurrentBossChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleCurrentBossChanged);
 		
 		HandleTotalScoreChanged(ElysiaGameState->GetTotalScore());
 		HandleGameProgressPercentChanged(ElysiaGameState->GetNormalPhaseTotalSeconds());
+		HandleCurrentBossChanged(ElysiaGameState->GetCurrentBoss());
 	}
 }
 
@@ -101,4 +107,95 @@ void UElysiaOverlayWidgetController::HandleGameProgressPercentChanged(int32 NewT
 			OnGameProgressPercentChanged.Broadcast(Percent);
 		}
 	}
+}
+
+void UElysiaOverlayWidgetController::HandleCurrentBossChanged(AElysiaEnemy* NewBoss)
+{
+	UnbindFromCurrentBoss();
+	BindToCurrentBoss(NewBoss);
+}
+
+void UElysiaOverlayWidgetController::HandleBossHealthChanged(const FOnAttributeChangeData& Data) const
+{
+	BroadcastBossHealthPercent();
+}
+
+void UElysiaOverlayWidgetController::HandleBossMaxHealthChanged(const FOnAttributeChangeData& Data) const
+{
+	BroadcastBossHealthPercent();
+}
+
+void UElysiaOverlayWidgetController::BroadcastBossHealthPercent() const
+{
+	const AElysiaEnemy* Boss = CurrentBoss.Get();
+	const UElysiaAttributeSet* BossAttributeSet = Boss ? Cast<UElysiaAttributeSet>(Boss->GetAttributeSet()) : nullptr;
+	if (!Boss || Boss->IsDead() || !BossAttributeSet)
+	{
+		OnBossHealthPercentChanged.Broadcast(0.f);
+		OnBossHealthVisibilityChanged.Broadcast(false);
+		return;
+	}
+
+	const float MaxHealth = BossAttributeSet->GetMaxHealth();
+	const float HealthPercent = MaxHealth > 0.f
+		? FMath::Clamp(BossAttributeSet->GetHealth() / MaxHealth, 0.f, 1.f)
+		: 0.f;
+	OnBossHealthPercentChanged.Broadcast(HealthPercent);
+}
+
+void UElysiaOverlayWidgetController::BindToCurrentBoss(AElysiaEnemy* NewBoss)
+{
+	if (!IsValid(NewBoss) || NewBoss->IsDead())
+	{
+		OnBossHealthPercentChanged.Broadcast(0.f);
+		OnBossHealthVisibilityChanged.Broadcast(false);
+		return;
+	}
+
+	UAbilitySystemComponent* BossAbilitySystemComponent = NewBoss->GetAbilitySystemComponent();
+	const UElysiaAttributeSet* BossAttributeSet = Cast<UElysiaAttributeSet>(NewBoss->GetAttributeSet());
+	if (!BossAbilitySystemComponent || !BossAttributeSet)
+	{
+		OnBossHealthPercentChanged.Broadcast(0.f);
+		OnBossHealthVisibilityChanged.Broadcast(false);
+		return;
+	}
+
+	CurrentBoss = NewBoss;
+	BossHealthChangedHandle = BossAbilitySystemComponent
+		->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthAttribute())
+		.AddUObject(this, &UElysiaOverlayWidgetController::HandleBossHealthChanged);
+	BossMaxHealthChangedHandle = BossAbilitySystemComponent
+		->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetMaxHealthAttribute())
+		.AddUObject(this, &UElysiaOverlayWidgetController::HandleBossMaxHealthChanged);
+
+	OnBossHealthVisibilityChanged.Broadcast(true);
+	BroadcastBossHealthPercent();
+}
+
+void UElysiaOverlayWidgetController::UnbindFromCurrentBoss()
+{
+	if (AElysiaEnemy* Boss = CurrentBoss.Get())
+	{
+		if (UAbilitySystemComponent* BossAbilitySystemComponent = Boss->GetAbilitySystemComponent())
+		{
+			if (BossHealthChangedHandle.IsValid())
+			{
+				BossAbilitySystemComponent
+					->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetHealthAttribute())
+					.Remove(BossHealthChangedHandle);
+			}
+
+			if (BossMaxHealthChangedHandle.IsValid())
+			{
+				BossAbilitySystemComponent
+					->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetMaxHealthAttribute())
+					.Remove(BossMaxHealthChangedHandle);
+			}
+		}
+	}
+
+	CurrentBoss.Reset();
+	BossHealthChangedHandle.Reset();
+	BossMaxHealthChangedHandle.Reset();
 }

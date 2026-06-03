@@ -7,9 +7,13 @@
 #include "UI/ElysiaWidgetController.h"
 #include "ElysiaOverlayWidgetController.generated.h"
 
+class AElysiaEnemy;
+struct FOnAttributeChangeData;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FProgressBarPercentChangedSignature, float, Percent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLevelTextChangedSignature, int32, NewLevel, bool, bLevelUp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FScoreTextChangedSignature, int32, NewScore);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBossHealthVisibilityChangedSignature, bool, bVisible);
 
 UCLASS(Blueprintable)
 class ELYSIA_API UElysiaOverlayWidgetController : public UElysiaWidgetController
@@ -30,31 +34,42 @@ protected:
 
 	UFUNCTION()
 	void HandleLevelChanged(int32 NewLevel, bool bLevelUp) const;
-	
+
 	UFUNCTION()
 	void HandleTotalScoreChanged(int32 NewTotalScore) const;
-	
+
 	UFUNCTION()
 	void HandleGameProgressPercentChanged(int32 NewTotalSecond);
-	
-	// 常驻 HUD：经验条百分比
-	UPROPERTY(BlueprintAssignable)
+
+	void HandleCurrentBossChanged(AElysiaEnemy* NewBoss);
+	void HandleBossHealthChanged(const FOnAttributeChangeData& Data) const;
+	void HandleBossMaxHealthChanged(const FOnAttributeChangeData& Data) const;
+	void BroadcastBossHealthPercent() const;
+	void BindToCurrentBoss(AElysiaEnemy* NewBoss);
+	void UnbindFromCurrentBoss();
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
 	FProgressBarPercentChangedSignature OnXPBarPercentChanged;
-	
-	// 常驻 HUD：等级文本变化
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
 	FLevelTextChangedSignature OnLevelTextChanged;
-	
-	// 常驻 HUD：分数文本变化
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
 	FScoreTextChangedSignature OnScoreTextChanged;
-	
-	// 常驻 HUD：游戏进度条百分比
-	UPROPERTY(BlueprintAssignable)
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
 	FProgressBarPercentChangedSignature OnGameProgressPercentChanged;
-	
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
+	FProgressBarPercentChangedSignature OnBossHealthPercentChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Overlay")
+	FBossHealthVisibilityChangedSignature OnBossHealthVisibilityChanged;
+
 private:
-	
+
 	int32 NormalPhaseTotalDuration = 0;
-	
+	TWeakObjectPtr<AElysiaEnemy> CurrentBoss;
+	FDelegateHandle BossHealthChangedHandle;
+	FDelegateHandle BossMaxHealthChangedHandle;
 };

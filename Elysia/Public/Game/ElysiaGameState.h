@@ -7,7 +7,10 @@
 #include "GameFramework/GameStateBase.h"
 #include "ElysiaGameState.generated.h"
 
+class AElysiaEnemy;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameStateChange, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCurrentBossChangedSignature, AElysiaEnemy*);
 
 UCLASS()
 class ELYSIA_API AElysiaGameState : public AGameStateBase
@@ -28,9 +31,11 @@ public:
 	int32 GetBossScore() const { return BossScore; }
 	int32 GetTotalScore() const { return TotalScore; }
 	bool IsRunFinished() const { return bRunFinished; }
+	AElysiaEnemy* GetCurrentBoss() const { return CurrentBoss.Get(); }
 
 	void SetCurrentRunPhase(EElysiaRunPhase InPhase);
 	void SetCurrentBossRound(int32 InBossRound);
+	void SetCurrentBoss(AElysiaEnemy* InCurrentBoss);
 	void SetNormalPhaseElapsedSeconds(int32 InElapsedSeconds);
 	void SetNormalPhaseTotalSeconds(int32 InTotalSeconds);
 	void SetNormalPhaseTotalDuration(int32 InTotalDuration);
@@ -40,6 +45,7 @@ public:
 	
 	FOnGameStateChange OnTotalScoreChanged;
 	FOnGameStateChange OnNormalPhaseTotalSecondsChanged;
+	FOnCurrentBossChangedSignature OnCurrentBossChanged;
 
 protected:
 	
@@ -50,6 +56,9 @@ protected:
 	// 当前Boss轮次
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Run")
 	int32 CurrentBossRound = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CurrentBoss, Category = "Run")
+	TObjectPtr<AElysiaEnemy> CurrentBoss;
 
 	// 当前小兵阶段计时
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Run")
@@ -86,5 +95,8 @@ private:
 	
 	UFUNCTION()
 	void OnRep_NormalPhaseTotalSeconds() const { OnNormalPhaseTotalSecondsChanged.Broadcast(NormalPhaseTotalSeconds); }
+
+	UFUNCTION()
+	void OnRep_CurrentBoss() const { OnCurrentBossChanged.Broadcast(CurrentBoss.Get()); }
 	
 };

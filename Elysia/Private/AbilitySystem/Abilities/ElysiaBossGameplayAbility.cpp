@@ -3,10 +3,8 @@
 
 #include "AbilitySystem/Abilities/ElysiaBossGameplayAbility.h"
 
-#include "AbilitySystemComponent.h"
 #include "Character/ElysiaBossBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameplayEffect.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -38,38 +36,6 @@ bool UElysiaBossGameplayAbility::CanActivateAbility(
 	}
 
 	return IsTargetInRange(Boss);
-}
-
-void UElysiaBossGameplayAbility::ApplyCooldown(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo) const
-{
-	if (CooldownDuration <= 0.f)
-	{
-		return;
-	}
-
-	UGameplayEffect* CooldownEffect = GetCooldownGameplayEffect();
-	UAbilitySystemComponent* AbilitySystemComponent = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!CooldownEffect || !AbilitySystemComponent)
-	{
-		return;
-	}
-
-	FGameplayEffectSpecHandle CooldownSpecHandle = MakeOutgoingGameplayEffectSpec(
-		Handle,
-		ActorInfo,
-		ActivationInfo,
-		CooldownEffect->GetClass(),
-		GetAbilityLevel(Handle, ActorInfo));
-	if (!CooldownSpecHandle.IsValid())
-	{
-		return;
-	}
-
-	CooldownSpecHandle.Data->SetDuration(FMath::Max(0.f, CooldownDuration), true);
-	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*CooldownSpecHandle.Data.Get());
 }
 
 bool UElysiaBossGameplayAbility::IsTargetInRange(const AElysiaBossBase* Boss) const

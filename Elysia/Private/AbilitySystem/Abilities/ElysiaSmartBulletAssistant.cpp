@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
+#include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Actor/ElysiaExplosiveProjectile.h"
 #include "Actor/ElysiaProjectile.h"
 #include "Actor/ElysiaSmartBulletOrb.h"
@@ -24,7 +25,7 @@ void UElysiaSmartBulletAssistant::ActivateAbility(
 	}
 
 	SpawnOrUpdateOrbs();
-	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaSmartBulletAssistant::FireFromOrbs, FireInterval, true);
+	BindAttackSpeedChanged();
 }
 
 void UElysiaSmartBulletAssistant::EndAbility(
@@ -34,6 +35,7 @@ void UElysiaSmartBulletAssistant::EndAbility(
 	bool bReplicateEndAbility,
 	bool bWasCancelled)
 {
+	UnbindAttackSpeedChanged();
 	DestroyOrbs();
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
@@ -223,6 +225,67 @@ AActor* UElysiaSmartBulletAssistant::FindTarget(const FVector& Origin) const
 	TArray<AActor*> OverlapActors;
 	UElysiaAbilitySystemLibrary::GetLiveActorsWithInRadius(this, OverlapActors, ActorsToIgnore, TargetSearchRadius, Origin, FName("Enemy"));
 	return UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, Origin);
+}
+
+void UElysiaSmartBulletAssistant::BindAttackSpeedChanged()
+{
+	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponentFromActorInfo();
+	if (!AbilitySystemComponent)
+	{
+		ResetFireTimerForAttackSpeed(1.f);
+		return;
+	}
+
+	UnbindAttackSpeedChanged();
+	AttackSpeedChangedHandle = AbilitySystemComponent
+		->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute())
+		.AddUObject(this, &UElysiaSmartBulletAssistant::HandleAttackSpeedChanged);
+
+	ResetFireTimerForAttackSpeed(AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
+}
+
+void UElysiaSmartBulletAssistant::UnbindAttackSpeedChanged()
+{
+	if (!AttackSpeedChangedHandle.IsValid())
+	{
+		return;
+	}
+
+	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
+	UAbilitySystemComponent* AbilitySystemComponent = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent
+			->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute())
+			.Remove(AttackSpeedChangedHandle);
+	}
+
+	AttackSpeedChangedHandle.Reset();
+}
+
+void UElysiaSmartBulletAssistant::HandleAttackSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	ResetFireTimerForAttackSpeed(Data.NewValue);
+}
+
+void UElysiaSmartBulletAssistant::ResetFireTimerForAttackSpeed(float AttackSpeed)
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(
+		SpawnProjectileTimer,
+		this,
+		&UElysiaSmartBulletAssistant::FireFromOrbs,
+		GetFireIntervalWithAttackSpeed(AttackSpeed),
+		true);
+}
+
+float UElysiaSmartBulletAssistant::GetFireIntervalWithAttackSpeed(float AttackSpeed) const
+{
+	return FMath::Max(0.01f, FireInterval / FMath::Clamp(AttackSpeed, 0.1f, 10.f));
 }
 
 int32 UElysiaSmartBulletAssistant::GetDesiredOrbCount() const

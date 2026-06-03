@@ -2,7 +2,6 @@
 
 
 #include "Game/ElysiaGameModeBase.h"
-
 #include "Character/ElysiaEnemy.h"
 #include "Game/ElysiaGameState.h"
 #include "Game/ElysiaSpawnManager.h"
@@ -45,6 +44,10 @@ void AElysiaGameModeBase::StartRun()
 	BossScore = 0;
 	TotalScore = 0;
 	CurrentBoss = nullptr;
+	if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+	{
+		ElysiaGameState->SetCurrentBoss(nullptr);
+	}
 
 	if (SpawnManager)
 	{
@@ -117,6 +120,10 @@ void AElysiaGameModeBase::EnterBossBattle(int32 BossRound)
 	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
+		if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+		{
+			ElysiaGameState->SetCurrentBoss(SpawnedBoss);
+		}
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
 		SpawnedBoss->OnEnemyDied.AddUObject(this, &AElysiaGameModeBase::HandleTrackedBossDied);
 	}
@@ -141,6 +148,10 @@ void AElysiaGameModeBase::EnterFinalBossBattle(int32 BossRound)
 	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
+		if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+		{
+			ElysiaGameState->SetCurrentBoss(SpawnedBoss);
+		}
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
 		SpawnedBoss->OnEnemyDied.AddUObject(this, &AElysiaGameModeBase::HandleTrackedBossDied);
 	}
@@ -156,6 +167,10 @@ void AElysiaGameModeBase::ResumeNormalPhase()
 	CurrentRunPhase = EElysiaRunPhase::Normal;
 	CurrentBoss = nullptr;
 	CurrentBossStartTime = 0.f;
+	if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+	{
+		ElysiaGameState->SetCurrentBoss(nullptr);
+	}
 
 	if (SpawnManager)
 	{
@@ -192,6 +207,10 @@ void AElysiaGameModeBase::FinishRun()
 {
 	CurrentRunPhase = EElysiaRunPhase::Finished;
 	CurrentBoss = nullptr;
+	if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
+	{
+		ElysiaGameState->SetCurrentBoss(nullptr);
+	}
 
 	GetWorldTimerManager().ClearTimer(RunLoopTimer);
 	if (SpawnManager)

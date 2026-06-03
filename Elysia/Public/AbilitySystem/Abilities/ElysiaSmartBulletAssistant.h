@@ -7,6 +7,7 @@
 #include "ElysiaSmartBulletAssistant.generated.h"
 
 class AElysiaSmartBulletOrb;
+struct FOnAttributeChangeData;
 
 UCLASS()
 class ELYSIA_API UElysiaSmartBulletAssistant : public UElysiaProjectileAbility
@@ -86,6 +87,11 @@ private:
 	void FireFromOrbs();
 	void FireBulletFromOrb(AElysiaSmartBulletOrb* Orb, int32 OrbIndex, int32 BulletIndex, int32 BulletCount);
 	AActor* FindTarget(const FVector& Origin) const;
+	void BindAttackSpeedChanged();
+	void UnbindAttackSpeedChanged();
+	void HandleAttackSpeedChanged(const FOnAttributeChangeData& Data);
+	void ResetFireTimerForAttackSpeed(float AttackSpeed);
+	float GetFireIntervalWithAttackSpeed(float AttackSpeed) const;
 	int32 GetDesiredOrbCount() const;
 	int32 GetCurrentExplosionShotInterval() const;
 	bool ShouldFireExplosionShot(int32 OrbIndex);
@@ -94,4 +100,5 @@ private:
 	TArray<TObjectPtr<AElysiaSmartBulletOrb>> ActiveOrbs;
 
 	TArray<int32> FiredBulletCountsPerOrb;
+	FDelegateHandle AttackSpeedChangedHandle;
 };

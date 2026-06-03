@@ -11,6 +11,18 @@ class UGameplayEffect;
 
 DECLARE_MULTICAST_DELEGATE(FOnBossAbilityFinishedSignature);
 
+USTRUCT(BlueprintType)
+struct FElysiaBossAbilityEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss Ability")
+	TSubclassOf<UElysiaBossGameplayAbility> AbilityClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss Ability", meta = (ClampMin = "0.0"))
+	float Weight = 1.f;
+};
+
 UCLASS()
 class ELYSIA_API AElysiaBossBase : public AElysiaEnemy
 {
@@ -52,7 +64,7 @@ public:
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Abilities")
-	TArray<TSubclassOf<UElysiaBossGameplayAbility>> BossAbilityClasses;
+	TArray<FElysiaBossAbilityEntry> BossAbilityEntries;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Teleport")
 	bool bTeleportNearTargetWhenTooFar = true;

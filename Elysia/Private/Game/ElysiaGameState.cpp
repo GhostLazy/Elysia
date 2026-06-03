@@ -2,7 +2,7 @@
 
 
 #include "Game/ElysiaGameState.h"
-
+#include "Character/ElysiaEnemy.h"
 #include "Net/UnrealNetwork.h"
 
 void AElysiaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -11,6 +11,7 @@ void AElysiaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(AElysiaGameState, CurrentRunPhase);
 	DOREPLIFETIME(AElysiaGameState, CurrentBossRound);
+	DOREPLIFETIME(AElysiaGameState, CurrentBoss);
 	DOREPLIFETIME(AElysiaGameState, NormalPhaseElapsedSeconds);
 	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalSeconds);
 	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalDuration);
@@ -29,6 +30,12 @@ void AElysiaGameState::SetCurrentRunPhase(EElysiaRunPhase InPhase)
 void AElysiaGameState::SetCurrentBossRound(int32 InBossRound)
 {
 	CurrentBossRound = FMath::Max(0, InBossRound);
+}
+
+void AElysiaGameState::SetCurrentBoss(AElysiaEnemy* InCurrentBoss)
+{
+	CurrentBoss = InCurrentBoss;
+	OnCurrentBossChanged.Broadcast(CurrentBoss.Get());
 }
 
 void AElysiaGameState::SetNormalPhaseElapsedSeconds(int32 InElapsedSeconds)

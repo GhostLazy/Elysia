@@ -96,7 +96,23 @@ bool AElysiaBossBase::TryActivateBestBossAbility()
 	for (const FGameplayAbilitySpec& AbilitySpec : AbilitySystemComponent->GetActivatableAbilities())
 	{
 		const UElysiaBossGameplayAbility* BossAbility = Cast<UElysiaBossGameplayAbility>(AbilitySpec.Ability);
-		if (!BossAbility || BossAbility->GetSelectionWeight() <= 0.f)
+		if (!BossAbility)
+		{
+			continue;
+		}
+
+		float ConfiguredWeight = 0.f;
+		for (const FElysiaBossAbilityEntry& AbilityEntry : BossAbilityEntries)
+		{
+			const UClass* EntryAbilityClass = AbilityEntry.AbilityClass.Get();
+			if (EntryAbilityClass && BossAbility->GetClass()->IsChildOf(EntryAbilityClass))
+			{
+				ConfiguredWeight = FMath::Max(0.f, AbilityEntry.Weight);
+				break;
+			}
+		}
+
+		if (ConfiguredWeight <= 0.f)
 		{
 			continue;
 		}
@@ -106,8 +122,8 @@ bool AElysiaBossBase::TryActivateBestBossAbility()
 			continue;
 		}
 
-		CandidateAbilities.Add({ AbilitySpec.Handle, BossAbility->GetSelectionWeight() });
-		TotalWeight += BossAbility->GetSelectionWeight();
+		CandidateAbilities.Add({ AbilitySpec.Handle, ConfiguredWeight });
+		TotalWeight += ConfiguredWeight;
 	}
 
 	if (CandidateAbilities.IsEmpty() || TotalWeight <= 0.f)
@@ -216,8 +232,9 @@ void AElysiaBossBase::GrantBossAbilities()
 		return;
 	}
 
-	for (const TSubclassOf<UElysiaBossGameplayAbility>& AbilityClass : BossAbilityClasses)
+	for (const FElysiaBossAbilityEntry& AbilityEntry : BossAbilityEntries)
 	{
+		const TSubclassOf<UElysiaBossGameplayAbility> AbilityClass = AbilityEntry.AbilityClass;
 		if (!AbilityClass)
 		{
 			continue;

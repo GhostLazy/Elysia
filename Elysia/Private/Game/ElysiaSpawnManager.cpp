@@ -2,7 +2,6 @@
 
 
 #include "Game/ElysiaSpawnManager.h"
-
 #include "AI/NavigationSystemBase.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "Character/ElysiaEnemy.h"
@@ -104,10 +103,8 @@ void AElysiaSpawnManager::StartEliteSpawn()
 		return;
 	}
 
-	if (!GetWorldTimerManager().IsTimerActive(EliteSpawnTimerHandle))
-	{
-		GetWorldTimerManager().SetTimer(EliteSpawnTimerHandle, this, &AElysiaSpawnManager::HandleEliteSpawnTick, EliteSpawnInterval, true);
-	}
+	GetWorldTimerManager().ClearTimer(EliteSpawnTimerHandle);
+	GetWorldTimerManager().SetTimer(EliteSpawnTimerHandle, this, &AElysiaSpawnManager::HandleEliteSpawnTick, EliteSpawnInterval, false);
 }
 
 void AElysiaSpawnManager::StopEliteSpawn()

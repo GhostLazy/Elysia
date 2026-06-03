@@ -13,6 +13,7 @@
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Actor/ElysiaXPBall.h"
 #include "Elysia/Elysia.h"
 #include "GameFramework/Character.h"
@@ -53,12 +54,23 @@ void AElysiaEnemy::BeginPlay()
 	
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	InitDefaultAttributes();
-	InitHealthBar();
-	
-	if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
+
+	const bool bShowOverheadHealthBar = EnemyType == EElysiaEnemyType::Elite;
+	if (HealthBar)
 	{
-		OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
-		OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
+		HealthBar->SetVisibility(bShowOverheadHealthBar);
+		HealthBar->SetHiddenInGame(!bShowOverheadHealthBar);
+	}
+
+	if (bShowOverheadHealthBar)
+	{
+		InitHealthBar();
+	
+		if (UElysiaAttributeSet* ElysiaAS = Cast<UElysiaAttributeSet>(AttributeSet))
+		{
+			OnHealthChanged.Broadcast(ElysiaAS->GetHealth());
+			OnMaxHealthChanged.Broadcast(ElysiaAS->GetMaxHealth());
+		}
 	}
 
 	if (HasAuthority())
