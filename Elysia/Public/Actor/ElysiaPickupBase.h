@@ -9,6 +9,7 @@
 class AElysiaCharacter;
 class UPrimitiveComponent;
 class USphereComponent;
+class UStaticMeshComponent;
 
 UCLASS(Abstract)
 class ELYSIA_API AElysiaPickupBase : public AActor
@@ -27,6 +28,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<USphereComponent> Sphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup|Visual")
+	TObjectPtr<UStaticMeshComponent> Mesh;
 
 private:
 	

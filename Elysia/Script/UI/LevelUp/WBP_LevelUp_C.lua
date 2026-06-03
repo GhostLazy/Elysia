@@ -22,9 +22,7 @@ function M:WidgetControllerSet()
     self.LevelUpWidgetController.OnEquipmentChoicesChanged:Add(self, self.HandleEquipmentChoicesChange)
     self.LevelUpWidgetController.OnEquipmentInventoryChanged:Add(self, self.HandleEquipmentInventoryChange)
 
-    self.Button_0.OnClicked:Add(self, self.OnButtonClicked_0)
-    self.Button_1.OnClicked:Add(self, self.OnButtonClicked_1)
-    self.Button_2.OnClicked:Add(self, self.OnButtonClicked_2)
+    self:SetupChoiceCards()
 
     -- 显示初始装备
     self:HandleEquipmentChoicesChange()
@@ -71,52 +69,71 @@ function M:ExitLevelUpState()
     self.bLevelUpStateActive = false
 end
 
-function M:UpdateChoiceText(TextBlock, ChoiceIndex)
-    if not TextBlock then
-        return
-    end
+function M:SetupChoiceCards()
+    self.ChoiceCards = {
+        self.WBP_EquipmentChoiceCard_1,
+        self.WBP_EquipmentChoiceCard_2,
+        self.WBP_EquipmentChoiceCard_3,
+    }
 
-    local ChoiceCount = self.LevelUpWidgetController.CurrentEquipmentChoices:Length()
-    if ChoiceIndex > ChoiceCount then
-        TextBlock:SetText("")
-        return
+    for _, Card in ipairs(self.ChoiceCards) do
+        if Card and Card.SetOwnerLevelUpWidget then
+            Card:SetOwnerLevelUpWidget(self)
+        end
     end
-
-    local Choice = self.LevelUpWidgetController.CurrentEquipmentChoices:Get(ChoiceIndex)
-    if Choice and Choice.bIsRecoveryChoice then
-        TextBlock:SetText(string.format("恢复%.0f点生命值", Choice.RecoveryHealth))
-        return
-    end
-
-    if Choice and Choice.Equipment then
-        TextBlock:SetText(Choice.Equipment.DisplayName)
-        return
-    end
-
-    TextBlock:SetText("")
 end
 
-function M:OnButtonClicked_0()
-    self.LevelUpWidgetController:SelectEquipmentByIndex(0)
+function M:GetChoiceDisplayData(ChoicePosition)
+    if not self.LevelUpWidgetController or not self.LevelUpWidgetController.CurrentEquipmentChoiceDisplays then
+        return nil
+    end
+
+    local ChoiceDisplays = self.LevelUpWidgetController.CurrentEquipmentChoiceDisplays
+    if ChoicePosition > ChoiceDisplays:Length() then
+        return nil
+    end
+
+    return ChoiceDisplays:Get(ChoicePosition)
 end
 
-function M:OnButtonClicked_1()
-    self.LevelUpWidgetController:SelectEquipmentByIndex(1)
+function M:UpdateChoiceCards()
+    if not self.ChoiceCards then
+        self:SetupChoiceCards()
+    end
+
+    for ChoicePosition, Card in ipairs(self.ChoiceCards) do
+        if Card and Card.SetChoiceData then
+            Card:SetChoiceData(self:GetChoiceDisplayData(ChoicePosition))
+        end
+    end
 end
 
-function M:OnButtonClicked_2()
-    self.LevelUpWidgetController:SelectEquipmentByIndex(2)
+function M:ClearChoiceCards()
+    if not self.ChoiceCards then
+        return
+    end
+
+    for _, Card in ipairs(self.ChoiceCards) do
+        if Card and Card.ClearChoiceData then
+            Card:ClearChoiceData()
+        end
+    end
+end
+
+function M:HandleChoiceCardSelected(ChoiceIndex)
+    if self.LevelUpWidgetController and ChoiceIndex and ChoiceIndex >= 0 then
+        self.LevelUpWidgetController:SelectEquipmentByIndex(ChoiceIndex)
+    end
 end
 
 function M:HandleEquipmentChoicesChange()
     if self.LevelUpWidgetController:HasPendingEquipmentChoices() then
         self:EnterLevelUpState()
-        self:UpdateChoiceText(self.TextBlock_0, 1)
-        self:UpdateChoiceText(self.TextBlock_1, 2)
-        self:UpdateChoiceText(self.TextBlock_2, 3)
+        self:UpdateChoiceCards()
         self:SetVisibility(UE.ESlateVisibility.Visible)
     else
         self:ExitLevelUpState()
+        self:ClearChoiceCards()
         self:SetVisibility(UE.ESlateVisibility.Collapsed)
     end
 end

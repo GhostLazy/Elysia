@@ -6,6 +6,7 @@
 #include "Character/ElysiaCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Elysia/Elysia.h"
 
 AElysiaPickupBase::AElysiaPickupBase()
@@ -19,6 +20,10 @@ AElysiaPickupBase::AElysiaPickupBase()
 	Sphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Sphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Sphere->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
+
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("Mesh");
+	Mesh->SetupAttachment(Sphere);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AElysiaPickupBase::BeginPlay()

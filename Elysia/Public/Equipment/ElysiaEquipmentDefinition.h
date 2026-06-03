@@ -13,7 +13,9 @@ class UTexture2D;
 UENUM(BlueprintType)
 enum class EElysiaEquipmentType : uint8
 {
+	// 武器装备：授予或升级 GameplayAbility，可进化。
 	Weapon,
+	// 属性加成：通过 GameplayEffect 修改角色属性，不作为武器装备展示。
 	Passive
 };
 
@@ -48,6 +50,15 @@ struct FElysiaEquipmentDefinition
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution")
 	FName RequiredPassiveEquipmentId;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution")
+	FText EvolvedDisplayName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution", meta = (MultiLine = true))
+	FText EvolvedDescription;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution")
+	TObjectPtr<UTexture2D> EvolvedIcon = nullptr;
 };
 
 UCLASS(BlueprintType)

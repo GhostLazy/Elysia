@@ -12,8 +12,25 @@ class UTexture2D;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEquipmentChoicesChangedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEquipmentInventoryChangedSignature);
 
+UENUM(BlueprintType)
+enum class EElysiaEquipmentChoiceDisplayType : uint8
+{
+	Weapon,
+	AttributeBonus,
+	Evolution,
+	Recovery
+};
+
+UENUM(BlueprintType)
+enum class EElysiaEquipmentChoiceCardStyle : uint8
+{
+	Weapon,
+	AttributeBonus,
+	Evolution
+};
+
 // 升级选择卡片的只读展示数据。
-// C++ 在这里完成等级、星级与进化组合的整理，Lua/UMG 只负责按字段渲染。
+// C++ 在这里完成候选项类型、卡面样式与基础展示内容整理，Lua/UMG 只负责按字段渲染。
 USTRUCT(BlueprintType)
 struct FElysiaEquipmentChoiceDisplayData
 {
@@ -28,6 +45,17 @@ struct FElysiaEquipmentChoiceDisplayData
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	EElysiaEquipmentType EquipmentType = EElysiaEquipmentType::Passive;
+
+	// 用于 UI 区分普通装备、属性加成、进化卡、恢复卡。
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	EElysiaEquipmentChoiceDisplayType DisplayType = EElysiaEquipmentChoiceDisplayType::AttributeBonus;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	FText TypeDisplayName;
+
+	// 用于 UI 从三种背景中选择卡片样式。
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	EElysiaEquipmentChoiceCardStyle CardStyle = EElysiaEquipmentChoiceCardStyle::AttributeBonus;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	FText DisplayName;
@@ -47,55 +75,23 @@ struct FElysiaEquipmentChoiceDisplayData
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	int32 MaxLevel = 1;
 
-	// 星级显示拆分：已拥有星、本次选择新增星、空星。
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	int32 StarSlotCount = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	int32 CurrentStarCount = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	int32 PreviewStarCount = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	int32 SelectedStarCount = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	int32 EmptyStarCount = 0;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	bool bAlreadyOwned = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	bool bAtMaxLevelAfterSelection = false;
+	bool bShowLevelText = true;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	bool bWillEvolve = false;
+	bool bHasEvolutionCombo = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	bool bIsRecoveryChoice = false;
+	FText EvolutionRequiredDisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	bool bEvolutionRequirementOwned = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	float RecoveryHealth = 0.f;
-
-	// 武器进化组合展示所需的被动装备信息。
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	bool bHasEvolutionCombo = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	FName EvolutionRequiredEquipmentId;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	FText EvolutionRequiredDisplayName;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	TObjectPtr<UTexture2D> EvolutionRequiredIcon = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	int32 EvolutionRequiredCurrentLevel = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
-	bool bEvolutionRequirementOwned = false;
 };
 
 UCLASS(Blueprintable)
