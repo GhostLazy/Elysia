@@ -37,6 +37,7 @@ public:
 	void StopTreasureChestSpawn();
 	bool IsNormalSpawnActive() const { return bNormalSpawnEnabled; }
 	void SetNormalEnemyLevel(int32 InLevel);
+	void SetNormalPhaseIndex(int32 InPhaseIndex);
 	AElysiaEnemy* SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass, int32 EnemyLevel = 1);
 
 protected:
@@ -150,5 +151,6 @@ private:
 	bool bNormalSpawnEnabled = false;
 	bool bTreasureChestSpawnEnabled = false;
 	int32 NormalEnemyLevel = 1;
+	int32 NormalPhaseIndex = 1;
 	float NextTreasureChestSpawnTime = 0.f;
 };

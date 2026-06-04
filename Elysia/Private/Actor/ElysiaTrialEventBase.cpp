@@ -3,10 +3,13 @@
 
 #include "Actor/ElysiaTrialEventBase.h"
 
+#include "Actor/ElysiaTrialInteractableActor.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Elysia/Elysia.h"
+#include "GameFramework/GameStateBase.h"
 #include "Interface/CombatInterface.h"
+#include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
 AElysiaTrialEventBase::AElysiaTrialEventBase()
@@ -20,10 +23,25 @@ AElysiaTrialEventBase::AElysiaTrialEventBase()
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>(TEXT("TriggerSphere"));
 	TriggerSphere->SetupAttachment(SceneRoot);
 	TriggerSphere->SetSphereRadius(TriggerRadius);
-	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
+
+	TrialOfferActorClass = AElysiaTrialInteractableActor::StaticClass();
+}
+
+void AElysiaTrialEventBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AElysiaTrialEventBase, SpawnPoint);
+	DOREPLIFETIME(AElysiaTrialEventBase, TriggeringActor);
+	DOREPLIFETIME(AElysiaTrialEventBase, TrialOfferActor);
+	DOREPLIFETIME(AElysiaTrialEventBase, OfferLifetime);
+	DOREPLIFETIME(AElysiaTrialEventBase, TrialEventState);
+	DOREPLIFETIME(AElysiaTrialEventBase, OfferStartedServerTime);
+	DOREPLIFETIME(AElysiaTrialEventBase, OfferExpirationServerTime);
 }
 
 void AElysiaTrialEventBase::BeginPlay()
@@ -33,8 +51,23 @@ void AElysiaTrialEventBase::BeginPlay()
 	if (TriggerSphere)
 	{
 		TriggerSphere->SetSphereRadius(TriggerRadius);
-		TriggerSphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaTrialEventBase::HandleTriggerSphereBeginOverlap);
+		if (bEnableOverlapTrigger)
+		{
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			TriggerSphere->OnComponentBeginOverlap.AddDynamic(this, &AElysiaTrialEventBase::HandleTriggerSphereBeginOverlap);
+		}
+		else
+		{
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 	}
+}
+
+void AElysiaTrialEventBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ClearExpirationTimer();
+	DestroyTrialOfferActor();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime)
@@ -47,6 +80,12 @@ void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntrig
 	SpawnPoint = InSpawnPoint;
 	TrialEventState = EElysiaTrialEventState::WaitingToBeTriggered;
 	bTrialFinishedBroadcasted = false;
+	OfferLifetime = InUntriggeredLifetime;
+
+	OfferStartedServerTime = GetCurrentServerWorldTime();
+	OfferExpirationServerTime = OfferLifetime > 0.f ? OfferStartedServerTime + OfferLifetime : 0.f;
+
+	SpawnTrialOfferActor();
 
 	if (UWorld* World = GetWorld(); World && InUntriggeredLifetime > 0.f)
 	{
@@ -55,7 +94,7 @@ void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntrig
 			this,
 			&AElysiaTrialEventBase::ExpireTrial,
 			InUntriggeredLifetime,
-			false);
+		false);
 	}
 
 	OnTrialOffered();
@@ -63,7 +102,7 @@ void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntrig
 
 void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
 {
-	if (!HasAuthority() || TrialEventState != EElysiaTrialEventState::WaitingToBeTriggered || !CanTriggerTrial(TriggerActor))
+	if (!HasAuthority() || !CanBeTriggeredBy(TriggerActor))
 	{
 		return;
 	}
@@ -77,6 +116,7 @@ void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
 		TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
+	DestroyTrialOfferActor();
 	OnTrialTriggered(TriggerActor);
 
 	if (bDestroyWhenTriggered)
@@ -98,6 +138,7 @@ void AElysiaTrialEventBase::CompleteTrial()
 	ClearExpirationTimer();
 	TrialEventState = EElysiaTrialEventState::Completed;
 	OnTrialCompleted();
+	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
 }
@@ -115,8 +156,24 @@ void AElysiaTrialEventBase::CancelTrial()
 	ClearExpirationTimer();
 	TrialEventState = EElysiaTrialEventState::Cancelled;
 	OnTrialCancelled();
+	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
+}
+
+bool AElysiaTrialEventBase::CanBeTriggeredBy(AActor* CandidateActor) const
+{
+	return TrialEventState == EElysiaTrialEventState::WaitingToBeTriggered && CanTriggerTrial(CandidateActor);
+}
+
+float AElysiaTrialEventBase::GetRemainingOfferTime() const
+{
+	if (OfferLifetime <= 0.f || OfferExpirationServerTime <= 0.f)
+	{
+		return 0.f;
+	}
+
+	return FMath::Max(0.f, OfferExpirationServerTime - GetCurrentServerWorldTime());
 }
 
 bool AElysiaTrialEventBase::CanTriggerTrial_Implementation(AActor* CandidateActor) const
@@ -170,6 +227,7 @@ void AElysiaTrialEventBase::ExpireTrial()
 
 	TrialEventState = EElysiaTrialEventState::Expired;
 	OnTrialExpired();
+	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
 }
@@ -191,4 +249,75 @@ void AElysiaTrialEventBase::BroadcastTrialFinished()
 
 	bTrialFinishedBroadcasted = true;
 	OnTrialEventFinished.Broadcast(this);
+}
+
+void AElysiaTrialEventBase::SpawnTrialOfferActor()
+{
+	if (!HasAuthority() || !bSpawnTrialOfferActor || !TrialOfferActorClass || TrialOfferActor)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const FTransform TrialTransform = GetActorTransform();
+	FVector OfferLocation = TrialTransform.TransformPosition(TrialOfferSpawnOffset);
+	FRotator OfferRotation = TrialTransform.GetRotation().Rotator();
+	if (SpawnPoint)
+	{
+		const FTransform SpawnPointTransform = SpawnPoint->GetActorTransform();
+		OfferLocation = SpawnPointTransform.TransformPosition(TrialOfferSpawnOffset);
+		OfferRotation = SpawnPointTransform.GetRotation().Rotator();
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	TrialOfferActor = World->SpawnActor<AElysiaTrialInteractableActor>(
+		TrialOfferActorClass,
+		OfferLocation,
+		OfferRotation,
+		SpawnParameters);
+
+	if (TrialOfferActor)
+	{
+		TrialOfferActor->InitializeTrialOffer(this);
+	}
+}
+
+void AElysiaTrialEventBase::DestroyTrialOfferActor()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (AElysiaTrialInteractableActor* OfferActor = TrialOfferActor.Get())
+	{
+		TrialOfferActor = nullptr;
+		if (!OfferActor->IsActorBeingDestroyed())
+		{
+			OfferActor->Destroy();
+		}
+	}
+}
+
+float AElysiaTrialEventBase::GetCurrentServerWorldTime() const
+{
+	if (const UWorld* World = GetWorld())
+	{
+		if (const AGameStateBase* GameState = World->GetGameState())
+		{
+			return GameState->GetServerWorldTimeSeconds();
+		}
+
+		return World->GetTimeSeconds();
+	}
+
+	return 0.f;
 }

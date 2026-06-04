@@ -98,6 +98,11 @@ void AElysiaTreasureChest::OpenChest(AActor* Opener)
 	Destroy();
 }
 
+void AElysiaTreasureChest::SetRewardPhaseIndex(int32 InPhaseIndex)
+{
+	RewardPhaseIndex = FMath::Max(1, InPhaseIndex);
+}
+
 void AElysiaTreasureChest::InitializeAttributes() const
 {
 	if (!AbilitySystemComponent)
@@ -143,22 +148,35 @@ void AElysiaTreasureChest::SpawnRandomReward(AActor* Opener)
 		break;
 	case EElysiaTreasureChestRewardType::XPBall:
 	default:
-		if (XPBallClass)
-		{
-			FTransform SpawnTransform(SpawnRotation, SpawnLocation);
-			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(
-				XPBallClass,
-				SpawnTransform,
-				this,
-				Cast<APawn>(Opener),
-				ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
-			{
-				XPBall->SetXPValue(FMath::Max(0, XPBallRewardValue));
-				XPBall->SetColorByLevel(FMath::Max(1, XPBallRewardLevel));
-				XPBall->FinishSpawning(SpawnTransform);
-			}
-		}
+		SpawnXPBallRewards(Opener);
 		break;
+	}
+}
+
+void AElysiaTreasureChest::SpawnXPBallRewards(AActor* Opener)
+{
+	if (!XPBallClass)
+	{
+		return;
+	}
+
+	const int32 RewardCount = FMath::Max(0, XPBallRewardCount);
+	const int32 RewardValue = FMath::Max(0, XPBallRewardValue);
+	const int32 RewardLevel = GetXPBallRewardLevel();
+	for (int32 Index = 0; Index < RewardCount; ++Index)
+	{
+		FTransform SpawnTransform(FRotator::ZeroRotator, GetRewardSpawnLocation());
+		if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(
+			XPBallClass,
+			SpawnTransform,
+			this,
+			Cast<APawn>(Opener),
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
+		{
+			XPBall->SetXPValue(RewardValue);
+			XPBall->SetColorByLevel(RewardLevel);
+			XPBall->FinishSpawning(SpawnTransform);
+		}
 	}
 }
 
@@ -234,6 +252,16 @@ bool AElysiaTreasureChest::HasRewardClass(EElysiaTreasureChestRewardType RewardT
 	default:
 		return XPBallClass != nullptr;
 	}
+}
+
+int32 AElysiaTreasureChest::GetXPBallRewardLevel() const
+{
+	if (RewardPhaseIndex <= 0)
+	{
+		return FMath::Max(1, XPBallRewardLevel);
+	}
+
+	return RewardPhaseIndex <= 2 ? 1 : 2;
 }
 
 FVector AElysiaTreasureChest::GetRewardSpawnLocation() const

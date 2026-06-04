@@ -3,6 +3,9 @@
 
 #include "Game/ElysiaTrialManager.h"
 
+#include "Actor/ElysiaHealthPickup.h"
+#include "Actor/ElysiaMagnetPickup.h"
+#include "Actor/ElysiaRunePickup.h"
 #include "Actor/ElysiaTrialEventBase.h"
 #include "Actor/ElysiaTrialSpawnPoint.h"
 #include "EngineUtils.h"
@@ -140,6 +143,11 @@ void AElysiaTrialManager::HandleTrialSpawnTimer()
 
 void AElysiaTrialManager::HandleActiveTrialFinished(AElysiaTrialEventBase* FinishedTrial)
 {
+	if (FinishedTrial && FinishedTrial->GetTrialEventState() == EElysiaTrialEventState::Completed)
+	{
+		SpawnTrialCompletionRewards(FinishedTrial);
+	}
+
 	if (ActiveTrialEvent.Get() == FinishedTrial)
 	{
 		ActiveTrialEvent.Reset();
@@ -153,18 +161,7 @@ bool AElysiaTrialManager::ShouldScheduleTrialForPhase(EElysiaRunPhase Phase) con
 		return false;
 	}
 
-	switch (Phase)
-	{
-	case EElysiaRunPhase::Normal:
-		return bEnableTrialsInNormalPhase;
-	case EElysiaRunPhase::BossBattle:
-		return bEnableTrialsInBossPhase;
-	case EElysiaRunPhase::FinalBossBattle:
-		return bEnableTrialsInFinalBossPhase;
-	case EElysiaRunPhase::Finished:
-	default:
-		return false;
-	}
+	return Phase == EElysiaRunPhase::Normal;
 }
 
 AElysiaTrialSpawnPoint* AElysiaTrialManager::ChooseTrialSpawnPoint() const
@@ -235,4 +232,52 @@ void AElysiaTrialManager::CancelActiveTrialForPhaseTransition()
 		TrialEvent->CancelTrial();
 		ActiveTrialEvent.Reset();
 	}
+}
+
+void AElysiaTrialManager::SpawnTrialCompletionRewards(const AElysiaTrialEventBase* CompletedTrial) const
+{
+	if (!HasAuthority() || !CompletedTrial)
+	{
+		return;
+	}
+
+	const FVector RewardOrigin = CompletedTrial->GetActorLocation();
+	SpawnTrialRewardActors(TrialRewardMagnetPickupClass.Get(), TrialRewardMagnetCount, RewardOrigin);
+	SpawnTrialRewardActors(TrialRewardHealthPickupClass.Get(), TrialRewardHealthCount, RewardOrigin);
+	SpawnTrialRewardActors(TrialRewardRunePickupClass.Get(), TrialRewardRuneCount, RewardOrigin);
+}
+
+void AElysiaTrialManager::SpawnTrialRewardActors(UClass* RewardClass, int32 Count, const FVector& Origin) const
+{
+	if (!RewardClass || Count <= 0)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = const_cast<AElysiaTrialManager*>(this);
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		World->SpawnActor<AActor>(
+			RewardClass,
+			GetTrialRewardSpawnLocation(Origin),
+			FRotator::ZeroRotator,
+			SpawnParameters);
+	}
+}
+
+FVector AElysiaTrialManager::GetTrialRewardSpawnLocation(const FVector& Origin) const
+{
+	const float AngleRadians = FMath::FRandRange(0.f, 2.f * PI);
+	const float Radius = FMath::FRandRange(0.f, FMath::Max(0.f, TrialRewardSpawnRadius));
+	const FVector Offset = FVector(FMath::Cos(AngleRadians), FMath::Sin(AngleRadians), 0.f) * Radius;
+	return Origin + Offset + FVector::UpVector * TrialRewardSpawnHeightOffset;
 }

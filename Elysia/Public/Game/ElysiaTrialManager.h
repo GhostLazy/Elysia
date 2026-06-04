@@ -9,6 +9,9 @@
 
 class AElysiaTrialEventBase;
 class AElysiaTrialSpawnPoint;
+class AElysiaHealthPickup;
+class AElysiaMagnetPickup;
+class AElysiaRunePickup;
 
 USTRUCT(BlueprintType)
 struct FElysiaTrialEventEntry
@@ -48,22 +51,37 @@ protected:
 	TArray<FElysiaTrialEventEntry> TrialEventPool;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
-	float TrialSpawnDelay = 30.f;
+	float TrialSpawnDelay = 40.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
 	float UntriggeredTrialLifetime = 50.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
-	bool bEnableTrialsInNormalPhase = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
-	bool bEnableTrialsInBossPhase = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
-	bool bEnableTrialsInFinalBossPhase = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bCancelTriggeredTrialOnPhaseEnd = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards")
+	TSubclassOf<AElysiaMagnetPickup> TrialRewardMagnetPickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards")
+	TSubclassOf<AElysiaHealthPickup> TrialRewardHealthPickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards")
+	TSubclassOf<AElysiaRunePickup> TrialRewardRunePickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards", meta = (ClampMin = "0"))
+	int32 TrialRewardMagnetCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards", meta = (ClampMin = "0"))
+	int32 TrialRewardHealthCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards", meta = (ClampMin = "0"))
+	int32 TrialRewardRuneCount = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards", meta = (ClampMin = "0.0"))
+	float TrialRewardSpawnRadius = 120.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards")
+	float TrialRewardSpawnHeightOffset = 20.f;
 
 private:
 
@@ -74,6 +92,9 @@ private:
 	AElysiaTrialSpawnPoint* ChooseTrialSpawnPoint() const;
 	TSubclassOf<AElysiaTrialEventBase> ChooseTrialEventClass() const;
 	void CancelActiveTrialForPhaseTransition();
+	void SpawnTrialCompletionRewards(const AElysiaTrialEventBase* CompletedTrial) const;
+	void SpawnTrialRewardActors(UClass* RewardClass, int32 Count, const FVector& Origin) const;
+	FVector GetTrialRewardSpawnLocation(const FVector& Origin) const;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AElysiaTrialSpawnPoint>> CachedTrialSpawnPoints;

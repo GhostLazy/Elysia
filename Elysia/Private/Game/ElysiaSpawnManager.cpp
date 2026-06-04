@@ -146,6 +146,15 @@ void AElysiaSpawnManager::SetNormalEnemyLevel(int32 InLevel)
 	NormalEnemyLevel = FMath::Max(1, InLevel);
 }
 
+void AElysiaSpawnManager::SetNormalPhaseIndex(int32 InPhaseIndex)
+{
+	NormalPhaseIndex = FMath::Max(1, InPhaseIndex);
+	if (ActiveTreasureChest.IsValid() && !ActiveTreasureChest->IsOpened())
+	{
+		ActiveTreasureChest->SetRewardPhaseIndex(NormalPhaseIndex);
+	}
+}
+
 AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> EnemyClass, int32 EnemyLevel)
 {
 	if (!HasAuthority() || !EnemyClass)
@@ -612,6 +621,7 @@ AElysiaTreasureChest* AElysiaSpawnManager::FindExistingTreasureChest()
 		}
 
 		ActiveTreasureChest = *It;
+		It->SetRewardPhaseIndex(NormalPhaseIndex);
 		It->OnTreasureChestOpened.RemoveAll(this);
 		It->OnTreasureChestOpened.AddUObject(this, &AElysiaSpawnManager::HandleTreasureChestOpened);
 		return *It;
@@ -638,6 +648,7 @@ AElysiaTreasureChest* AElysiaSpawnManager::SpawnTreasureChest(const FVector& Spa
 		SpawnParameters);
 	if (SpawnedChest)
 	{
+		SpawnedChest->SetRewardPhaseIndex(NormalPhaseIndex);
 		ActiveTreasureChest = SpawnedChest;
 		SpawnedChest->OnTreasureChestOpened.RemoveAll(this);
 		SpawnedChest->OnTreasureChestOpened.AddUObject(this, &AElysiaSpawnManager::HandleTreasureChestOpened);

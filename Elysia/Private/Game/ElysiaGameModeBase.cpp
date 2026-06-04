@@ -64,6 +64,7 @@ void AElysiaGameModeBase::StartRun()
 
 	if (SpawnManager)
 	{
+		SpawnManager->SetNormalPhaseIndex(1);
 		SpawnManager->SetNormalEnemyLevel(GetNormalEnemyLevelForWave(1));
 		SpawnManager->StartNormalSpawn();
 		SpawnManager->StartEliteSpawn();
@@ -191,6 +192,7 @@ void AElysiaGameModeBase::ResumeNormalPhase()
 
 	if (SpawnManager)
 	{
+		SpawnManager->SetNormalPhaseIndex(TriggeredBossRounds + 1);
 		SpawnManager->SetNormalEnemyLevel(GetNormalEnemyLevelForWave(TriggeredBossRounds + 1));
 		SpawnManager->StartEliteSpawn();
 		SpawnManager->StartNormalSpawn();

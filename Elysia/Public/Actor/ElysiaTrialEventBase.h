@@ -9,6 +9,7 @@
 class USphereComponent;
 class UPrimitiveComponent;
 class USceneComponent;
+class AElysiaTrialInteractableActor;
 
 UENUM(BlueprintType)
 enum class EElysiaTrialEventState : uint8
@@ -31,6 +32,8 @@ public:
 
 	AElysiaTrialEventBase();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	void InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime);
 
 	UFUNCTION(BlueprintCallable, Category = "Trial")
@@ -51,11 +54,24 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Trial")
 	bool HasBeenTriggered() const { return TrialEventState == EElysiaTrialEventState::Triggered; }
 
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	bool CanBeTriggeredBy(AActor* CandidateActor) const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	float GetRemainingOfferTime() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	float GetTotalOfferTime() const { return OfferLifetime; }
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	AElysiaTrialInteractableActor* GetTrialOfferActor() const { return TrialOfferActor; }
+
 	FOnTrialEventFinishedSignature OnTrialEventFinished;
 
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -63,20 +79,38 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	TObjectPtr<USphereComponent> TriggerSphere;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Overlap Trigger")
+	bool bEnableOverlapTrigger = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Overlap Trigger", meta = (ClampMin = "0.0"))
 	float TriggerRadius = 180.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bDestroyWhenTriggered = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Overlap Trigger")
 	bool bDisableTriggerCollisionWhenTriggered = true;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Trial")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
+	bool bSpawnTrialOfferActor = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
+	TSubclassOf<AElysiaTrialInteractableActor> TrialOfferActorClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
+	FVector TrialOfferSpawnOffset = FVector::ZeroVector;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial")
 	TObjectPtr<AActor> SpawnPoint;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Trial")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial")
 	TObjectPtr<AActor> TriggeringActor;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial|Offer")
+	TObjectPtr<AElysiaTrialInteractableActor> TrialOfferActor;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial|Offer")
+	float OfferLifetime = 0.f;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
 	bool CanTriggerTrial(AActor* CandidateActor) const;
@@ -116,8 +150,20 @@ private:
 	void ExpireTrial();
 	void ClearExpirationTimer();
 	void BroadcastTrialFinished();
+	void SpawnTrialOfferActor();
+	void DestroyTrialOfferActor();
+	float GetCurrentServerWorldTime() const;
 
 	FTimerHandle ExpirationTimerHandle;
+
+	UPROPERTY(Replicated)
 	EElysiaTrialEventState TrialEventState = EElysiaTrialEventState::WaitingToBeTriggered;
+
+	UPROPERTY(Replicated)
+	float OfferStartedServerTime = 0.f;
+
+	UPROPERTY(Replicated)
+	float OfferExpirationServerTime = 0.f;
+
 	bool bTrialFinishedBroadcasted = false;
 };

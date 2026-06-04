@@ -50,6 +50,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Treasure Chest")
 	void OpenChest(AActor* Opener);
 
+	UFUNCTION(BlueprintCallable, Category = "Treasure Chest|Rewards")
+	void SetRewardPhaseIndex(int32 InPhaseIndex);
+
 	bool IsOpened() const { return bOpened; }
 
 	FOnTreasureChestOpenedSignature OnTreasureChestOpened;
@@ -102,7 +105,13 @@ protected:
 	int32 XPBallRewardValue = 20;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Treasure Chest|Rewards", meta = (ClampMin = "1"))
+	int32 XPBallRewardCount = 5;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Treasure Chest|Rewards", meta = (ClampMin = "1"))
 	int32 XPBallRewardLevel = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Treasure Chest|Rewards")
+	int32 RewardPhaseIndex = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Treasure Chest|Rewards", meta = (ClampMin = "0.0"))
 	float RewardSpawnRadius = 80.f;
@@ -114,9 +123,11 @@ private:
 
 	void InitializeAttributes() const;
 	void SpawnRandomReward(AActor* Opener);
+	void SpawnXPBallRewards(AActor* Opener);
 	EElysiaTreasureChestRewardType ChooseRewardType() const;
 	float GetRewardWeight(EElysiaTreasureChestRewardType RewardType) const;
 	bool HasRewardClass(EElysiaTreasureChestRewardType RewardType) const;
+	int32 GetXPBallRewardLevel() const;
 	FVector GetRewardSpawnLocation() const;
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
 

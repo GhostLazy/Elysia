@@ -3,12 +3,14 @@
 
 #include "Player/ElysiaPlayerController.h"
 #include "AbilitySystemComponent.h"
+#include "Actor/ElysiaTrialInteractableActor.h"
 #include "ElysiaGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Character/ElysiaCharacter.h"
+#include "EngineUtils.h"
 
 AElysiaPlayerController::AElysiaPlayerController()
 {
@@ -42,6 +44,10 @@ void AElysiaPlayerController::SetupInputComponent()
 	{
 		EnhancedInputComponent->BindAction(SkillAction, ETriggerEvent::Started, this, &AElysiaPlayerController::ActivateSkill);
 	}
+	if (InteractAction)
+	{
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AElysiaPlayerController::Interact);
+	}
 }
 
 void AElysiaPlayerController::Move(const FInputActionValue& InputActionValue)
@@ -72,9 +78,34 @@ void AElysiaPlayerController::ActivateSkill()
 	ServerActivateSkill();
 }
 
+void AElysiaPlayerController::Interact()
+{
+	AElysiaTrialInteractableActor* TrialOffer = FindBestTrialOfferToInteract();
+	if (!TrialOffer)
+	{
+		return;
+	}
+
+	if (HasAuthority())
+	{
+		TrialOffer->Interact(GetPawn());
+		return;
+	}
+
+	ServerInteractWithTrialOffer(TrialOffer);
+}
+
 void AElysiaPlayerController::ServerActivateSkill_Implementation()
 {
 	TryActivateSkill();
+}
+
+void AElysiaPlayerController::ServerInteractWithTrialOffer_Implementation(AElysiaTrialInteractableActor* TrialOffer)
+{
+	if (TrialOffer)
+	{
+		TrialOffer->Interact(GetPawn());
+	}
 }
 
 void AElysiaPlayerController::TryActivateSkill()
@@ -88,4 +119,35 @@ void AElysiaPlayerController::TryActivateSkill()
 			AbilitySystemComponent->TryActivateAbilitiesByTag(SkillTags);
 		}
 	}
+}
+
+AElysiaTrialInteractableActor* AElysiaPlayerController::FindBestTrialOfferToInteract() const
+{
+	AActor* InteractingActor = GetPawn();
+	UWorld* World = GetWorld();
+	if (!InteractingActor || !World)
+	{
+		return nullptr;
+	}
+
+	AElysiaTrialInteractableActor* BestTrialOffer = nullptr;
+	float BestDistanceSq = TNumericLimits<float>::Max();
+
+	for (TActorIterator<AElysiaTrialInteractableActor> It(World); It; ++It)
+	{
+		AElysiaTrialInteractableActor* TrialOffer = *It;
+		if (!IsValid(TrialOffer) || !TrialOffer->CanInteract(InteractingActor))
+		{
+			continue;
+		}
+
+		const float DistanceSq = FVector::DistSquared(InteractingActor->GetActorLocation(), TrialOffer->GetActorLocation());
+		if (DistanceSq < BestDistanceSq)
+		{
+			BestDistanceSq = DistanceSq;
+			BestTrialOffer = TrialOffer;
+		}
+	}
+
+	return BestTrialOffer;
 }
