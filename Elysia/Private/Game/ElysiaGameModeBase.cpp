@@ -5,6 +5,7 @@
 #include "Character/ElysiaEnemy.h"
 #include "Game/ElysiaGameState.h"
 #include "Game/ElysiaSpawnManager.h"
+#include "Game/ElysiaTrialManager.h"
 #include "Kismet/GameplayStatics.h"
 
 AElysiaGameModeBase::AElysiaGameModeBase()
@@ -28,6 +29,18 @@ void AElysiaGameModeBase::BeginPlay()
 	else
 	{
 		SpawnManager = GetWorld()->SpawnActor<AElysiaSpawnManager>(SpawnManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
+	}
+
+	if (TrialManagerClass)
+	{
+		if (AElysiaTrialManager* ExistingTrialManager = Cast<AElysiaTrialManager>(UGameplayStatics::GetActorOfClass(this, TrialManagerClass)))
+		{
+			TrialManager = ExistingTrialManager;
+		}
+		else
+		{
+			TrialManager = GetWorld()->SpawnActor<AElysiaTrialManager>(TrialManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
+		}
 	}
 
 	StartRun();
@@ -63,6 +76,7 @@ void AElysiaGameModeBase::StartRun()
 	}
 	
 	UpdateGameStateSnapshot();
+	NotifyTrialManagerPhaseStarted();
 	GetWorldTimerManager().SetTimer(RunLoopTimer, this, &AElysiaGameModeBase::AdvanceRunOneSecond, 1.f, true);
 }
 
@@ -127,6 +141,7 @@ void AElysiaGameModeBase::EnterBossBattle(int32 BossRound)
 		}
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
 		SpawnedBoss->OnEnemyDied.AddUObject(this, &AElysiaGameModeBase::HandleTrackedBossDied);
+		NotifyTrialManagerPhaseStarted();
 	}
 	else
 	{
@@ -155,6 +170,7 @@ void AElysiaGameModeBase::EnterFinalBossBattle(int32 BossRound)
 		}
 		SpawnedBoss->OnEnemyDied.RemoveAll(this);
 		SpawnedBoss->OnEnemyDied.AddUObject(this, &AElysiaGameModeBase::HandleTrackedBossDied);
+		NotifyTrialManagerPhaseStarted();
 	}
 	else
 	{
@@ -181,6 +197,7 @@ void AElysiaGameModeBase::ResumeNormalPhase()
 	}
 
 	UpdateGameStateSnapshot();
+	NotifyTrialManagerPhaseStarted();
 }
 
 void AElysiaGameModeBase::HandleTrackedBossDied(AElysiaEnemy* DeadEnemy)
@@ -214,6 +231,11 @@ void AElysiaGameModeBase::FinishRun()
 	}
 
 	GetWorldTimerManager().ClearTimer(RunLoopTimer);
+	if (TrialManager)
+	{
+		TrialManager->StopAllTrials();
+	}
+
 	if (SpawnManager)
 	{
 		SpawnManager->StopEliteSpawn();
@@ -222,6 +244,17 @@ void AElysiaGameModeBase::FinishRun()
 	}
 
 	UpdateGameStateSnapshot();
+}
+
+void AElysiaGameModeBase::NotifyTrialManagerPhaseStarted()
+{
+	if (!TrialManager)
+	{
+		return;
+	}
+
+	const int32 PhaseIndex = CurrentRunPhase == EElysiaRunPhase::Normal ? TriggeredBossRounds + 1 : TriggeredBossRounds;
+	TrialManager->StartPhaseTrial(CurrentRunPhase, PhaseIndex);
 }
 
 void AElysiaGameModeBase::UpdateGameStateSnapshot() const

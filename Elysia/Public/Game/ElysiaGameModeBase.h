@@ -10,6 +10,7 @@
 class AElysiaEnemy;
 class AElysiaGameState;
 class AElysiaSpawnManager;
+class AElysiaTrialManager;
 
 /**
  * 
@@ -48,6 +49,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Spawn")
 	TSubclassOf<AElysiaSpawnManager> SpawnManagerClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Trial")
+	TSubclassOf<AElysiaTrialManager> TrialManagerClass;
+
 private:
 	void StartRun();
 	void AdvanceRunOneSecond();
@@ -56,6 +60,7 @@ private:
 	void ResumeNormalPhase();
 	void HandleTrackedBossDied(AElysiaEnemy* DeadEnemy);
 	void FinishRun();
+	void NotifyTrialManagerPhaseStarted();
 	void UpdateGameStateSnapshot() const;
 	int32 CalculateBossRoundScore(float BossDuration) const;
 	TSubclassOf<AElysiaEnemy> GetBossClassForRound(int32 BossRound) const;
@@ -64,6 +69,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AElysiaSpawnManager> SpawnManager;
+
+	UPROPERTY()
+	TObjectPtr<AElysiaTrialManager> TrialManager;
 
 	TWeakObjectPtr<AElysiaEnemy> CurrentBoss;
 	FTimerHandle RunLoopTimer;

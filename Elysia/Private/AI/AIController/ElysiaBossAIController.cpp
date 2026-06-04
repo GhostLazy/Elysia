@@ -3,10 +3,23 @@
 
 #include "AI/AIController/ElysiaBossAIController.h"
 #include "Character/ElysiaBossBase.h"
+#include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Interface/CombatInterface.h"
+
+void AElysiaBossAIController::OnPossess(APawn* InPawn)
+{
+	BindToBoss(Cast<AElysiaBossBase>(InPawn));
+	Super::OnPossess(InPawn);
+}
+
+void AElysiaBossAIController::OnUnPossess()
+{
+	UnbindFromBoss(BoundBoss.Get());
+	Super::OnUnPossess();
+}
 
 void AElysiaBossAIController::UpdateBehavior()
 {
@@ -44,7 +57,7 @@ void AElysiaBossAIController::UpdateBehavior()
 		return;
 	}
 
-	if (TryActivateBestBossAbility())
+	if (IsBossAbilityCooldownReady() && TryActivateBestBossAbility())
 	{
 		StopMovement();
 		return;
@@ -74,12 +87,63 @@ void AElysiaBossAIController::OnTargetActorChanged(AActor* NewTargetActor)
 
 bool AElysiaBossAIController::TryActivateBestBossAbility()
 {
+	if (!IsBossAbilityCooldownReady())
+	{
+		return false;
+	}
+
 	if (AElysiaBossBase* ControlledBoss = GetControlledBoss())
 	{
 		return ControlledBoss->TryActivateBestBossAbility();
 	}
 
 	return false;
+}
+
+void AElysiaBossAIController::BindToBoss(AElysiaBossBase* Boss)
+{
+	if (!Boss || BoundBoss.Get() == Boss)
+	{
+		return;
+	}
+
+	UnbindFromBoss(BoundBoss.Get());
+	Boss->OnBossAbilityFinished.RemoveAll(this);
+	Boss->OnBossAbilityFinished.AddUObject(this, &AElysiaBossAIController::HandleBossAbilityFinished);
+	BoundBoss = Boss;
+	NextAllowedBossAbilityTime = 0.f;
+}
+
+void AElysiaBossAIController::UnbindFromBoss(AElysiaBossBase* Boss)
+{
+	if (Boss)
+	{
+		Boss->OnBossAbilityFinished.RemoveAll(this);
+	}
+
+	if (BoundBoss.Get() == Boss)
+	{
+		BoundBoss.Reset();
+	}
+}
+
+void AElysiaBossAIController::HandleBossAbilityFinished()
+{
+	if (const UWorld* World = GetWorld())
+	{
+		NextAllowedBossAbilityTime = World->GetTimeSeconds() + FMath::Max(0.f, BossAbilityCooldownTime);
+	}
+}
+
+bool AElysiaBossAIController::IsBossAbilityCooldownReady() const
+{
+	if (BossAbilityCooldownTime <= 0.f)
+	{
+		return true;
+	}
+
+	const UWorld* World = GetWorld();
+	return !World || World->GetTimeSeconds() >= NextAllowedBossAbilityTime;
 }
 
 AActor* AElysiaBossAIController::FindFallbackCombatTarget() const

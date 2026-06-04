@@ -26,17 +26,23 @@ public:
 
 protected:
 	
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnUnPossess() override;
 	virtual void UpdateBehavior() override;
 	virtual void OnTargetActorChanged(AActor* NewTargetActor) override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.01"))
-	float RetargetInterval = 0.5f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Abilities", meta = (ClampMin = "0.0"))
+	float BossAbilityCooldownTime = 3.f;
 
 private:
 
+	void BindToBoss(AElysiaBossBase* Boss);
+	void UnbindFromBoss(AElysiaBossBase* Boss);
+	void HandleBossAbilityFinished();
+	bool IsBossAbilityCooldownReady() const;
 	AActor* FindFallbackCombatTarget() const;
 	static bool IsValidCombatTarget(const AActor* Actor);
 
-	FTimerHandle RetargetTimerHandle;
-	
+	TWeakObjectPtr<AElysiaBossBase> BoundBoss;
+	float NextAllowedBossAbilityTime = 0.f;
 };
