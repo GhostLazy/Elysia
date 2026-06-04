@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaOffensiveGameplayAbility.h"
+#include "AbilitySystem/Abilities/Character/ElysiaOffensiveGameplayAbility.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"

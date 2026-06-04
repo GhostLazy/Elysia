@@ -5,7 +5,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystem/Abilities/ElysiaBossGameplayAbility.h"
+#include "AbilitySystem/Abilities/Enemy/ElysiaBossGameplayAbility.h"
 #include "AI/AIController/ElysiaBossAIController.h"
 #include "Components/CapsuleComponent.h"
 #include "Elysia/Elysia.h"

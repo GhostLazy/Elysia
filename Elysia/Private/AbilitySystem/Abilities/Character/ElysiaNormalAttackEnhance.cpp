@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaNormalAttackEnhance.h"
+#include "AbilitySystem/Abilities/Character/ElysiaNormalAttackEnhance.h"
 
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 #include "GameplayEffect.h"

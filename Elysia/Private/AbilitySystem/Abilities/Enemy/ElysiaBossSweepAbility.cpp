@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaBossSweepAbility.h"
+#include "AbilitySystem/Abilities/Enemy/ElysiaBossSweepAbility.h"
 
 #include "Character/ElysiaBossBase.h"
 #include "Engine/OverlapResult.h"

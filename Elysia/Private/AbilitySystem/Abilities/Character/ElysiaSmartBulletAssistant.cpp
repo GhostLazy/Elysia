@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaSmartBulletAssistant.h"
+#include "AbilitySystem/Abilities/Character/ElysiaSmartBulletAssistant.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"

@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaDamageGameplayAbility.h"
+#include "AbilitySystem/Abilities/Character/ElysiaDamageGameplayAbility.h"
 #include "Equipment/ElysiaEquipmentComponent.h"
 #include "Character/ElysiaCharacter.h"
 #include "Player/ElysiaPlayerState.h"

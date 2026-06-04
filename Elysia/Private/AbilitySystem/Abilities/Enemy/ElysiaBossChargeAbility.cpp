@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaBossChargeAbility.h"
+#include "AbilitySystem/Abilities/Enemy/ElysiaBossChargeAbility.h"
 
 #include "Character/ElysiaBossBase.h"
 #include "Components/CapsuleComponent.h"

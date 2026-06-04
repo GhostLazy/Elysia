@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaNormalAttack.h"
+#include "AbilitySystem/Abilities/Character/ElysiaNormalAttack.h"
 #include "AbilitySystemComponent.h"
 #include "ElysiaGameplayTags.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"

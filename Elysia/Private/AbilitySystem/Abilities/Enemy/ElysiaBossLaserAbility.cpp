@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaBossLaserAbility.h"
+#include "AbilitySystem/Abilities/Enemy/ElysiaBossLaserAbility.h"
 
 #include "Actor/ElysiaBossLaserActor.h"
 #include "Character/ElysiaBossBase.h"

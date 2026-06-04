@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaProjectileAbility.h"
+#include "AbilitySystem/Abilities/Character/ElysiaProjectileAbility.h"
 
 void UElysiaProjectileAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,

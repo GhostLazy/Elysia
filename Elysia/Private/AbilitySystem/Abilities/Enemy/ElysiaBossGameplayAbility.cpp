@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "AbilitySystem/Abilities/ElysiaBossGameplayAbility.h"
+#include "AbilitySystem/Abilities/Enemy/ElysiaBossGameplayAbility.h"
 
 #include "Character/ElysiaBossBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
