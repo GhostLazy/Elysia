@@ -7,7 +7,7 @@
 #include "ElysiaPlayerController.generated.h"
 
 struct FInputActionValue;
-class AElysiaTrialInteractableActor;
+class UElysiaTrialInteractionComponent;
 class UInputAction;
 class UInputMappingContext;
 /**
@@ -21,6 +21,9 @@ class ELYSIA_API AElysiaPlayerController : public APlayerController
 public:
 	
 	AElysiaPlayerController();
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
+	UElysiaTrialInteractionComponent* GetTrialInteractionComponent() const { return TrialInteractionComponent; }
 	
 protected:
 	
@@ -41,6 +44,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Trial|Interaction", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UElysiaTrialInteractionComponent> TrialInteractionComponent;
+
 	void Move(const FInputActionValue& InputActionValue);
 	void ActivateSkill();
 	void Interact();
@@ -48,9 +54,5 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerActivateSkill();
 
-	UFUNCTION(Server, Reliable)
-	void ServerInteractWithTrialOffer(AElysiaTrialInteractableActor* TrialOffer);
-
 	void TryActivateSkill();
-	AElysiaTrialInteractableActor* FindBestTrialOfferToInteract() const;
 };

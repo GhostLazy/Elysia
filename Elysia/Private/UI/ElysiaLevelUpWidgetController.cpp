@@ -128,52 +128,11 @@ FElysiaEquipmentChoiceDisplayData UElysiaLevelUpWidgetController::MakeChoiceDisp
 	DisplayData.NextLevel = FMath::Clamp(Choice.NextLevel, 1, DisplayData.MaxLevel);
 	DisplayData.bAlreadyOwned = Choice.bAlreadyOwned;
 	DisplayData.bShowLevelText = !bDisplaysAsEvolution;
-	const FName EvolutionRequiredEquipmentId = Choice.Equipment.RequiredPassiveEquipmentId;
-	DisplayData.bHasEvolutionCombo = Choice.EquipmentType == EElysiaEquipmentType::Weapon
-		&& !EvolutionRequiredEquipmentId.IsNone()
-		&& !bDisplaysAsEvolution;
-
-	if (DisplayData.bHasEvolutionCombo)
-	{
-		if (const FElysiaEquipmentDefinition* RequiredDefinition = FindEquipmentDefinition(EvolutionRequiredEquipmentId))
-		{
-			DisplayData.EvolutionRequiredDisplayName = RequiredDefinition->DisplayName;
-		}
-
-		if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
-		{
-			DisplayData.bEvolutionRequirementOwned = EquipmentComponent->GetEquipmentLevelById(EvolutionRequiredEquipmentId) > 0;
-		}
-	}
+	DisplayData.bHasEvolutionRequirement = Choice.EvolutionRequirement.bHasRequirement && !bDisplaysAsEvolution;
+	DisplayData.EvolutionRequiredDisplayName = Choice.EvolutionRequirement.DisplayName;
+	DisplayData.EvolutionRequiredIcon = Choice.EvolutionRequirement.Icon;
+	DisplayData.EvolutionRequiredCurrentLevel = Choice.EvolutionRequirement.CurrentLevel;
+	DisplayData.bEvolutionRequirementMet = Choice.EvolutionRequirement.bRequirementMet;
 
 	return DisplayData;
-}
-
-const FElysiaEquipmentDefinition* UElysiaLevelUpWidgetController::FindEquipmentDefinition(FName EquipmentId) const
-{
-	if (EquipmentId.IsNone())
-	{
-		return nullptr;
-	}
-
-	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
-	{
-		if (const UElysiaEquipmentPoolDataAsset* EquipmentPool = EquipmentComponent->GetEquipmentPool())
-		{
-			if (const FElysiaEquipmentDefinition* EquipmentDefinition = EquipmentPool->FindEquipmentById(EquipmentId))
-			{
-				return EquipmentDefinition;
-			}
-		}
-	}
-
-	for (const FElysiaEquipmentEntry& OwnedEquipment : OwnedEquipments)
-	{
-		if (OwnedEquipment.Equipment.EquipmentId == EquipmentId)
-		{
-			return &OwnedEquipment.Equipment;
-		}
-	}
-
-	return nullptr;
 }

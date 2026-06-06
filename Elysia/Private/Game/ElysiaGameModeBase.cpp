@@ -5,7 +5,7 @@
 #include "Character/ElysiaEnemy.h"
 #include "Game/ElysiaGameState.h"
 #include "Game/ElysiaSpawnManager.h"
-#include "Game/ElysiaTrialManager.h"
+#include "Trial/ElysiaTrialManager.h"
 #include "Kismet/GameplayStatics.h"
 
 AElysiaGameModeBase::AElysiaGameModeBase()

@@ -34,7 +34,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime);
+	void InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime, TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass);
 
 	UFUNCTION(BlueprintCallable, Category = "Trial")
 	void TriggerTrial(AActor* TriggerActor);
@@ -95,9 +95,6 @@ protected:
 	bool bSpawnTrialOfferActor = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
-	TSubclassOf<AElysiaTrialInteractableActor> TrialOfferActorClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
 	FVector TrialOfferSpawnOffset = FVector::ZeroVector;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial")
@@ -150,7 +147,7 @@ private:
 	void ExpireTrial();
 	void ClearExpirationTimer();
 	void BroadcastTrialFinished();
-	void SpawnTrialOfferActor();
+	void SpawnTrialOfferActor(TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass);
 	void DestroyTrialOfferActor();
 	float GetCurrentServerWorldTime() const;
 

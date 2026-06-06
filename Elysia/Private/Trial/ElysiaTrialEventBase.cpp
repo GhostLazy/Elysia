@@ -1,9 +1,8 @@
 // Copyright GhostLazy
 
 
-#include "Actor/ElysiaTrialEventBase.h"
+#include "Trial/ElysiaTrialEventBase.h"
 
-#include "Actor/ElysiaTrialInteractableActor.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Elysia/Elysia.h"
@@ -11,6 +10,7 @@
 #include "Interface/CombatInterface.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
+#include "Trial/ElysiaTrialInteractableActor.h"
 
 AElysiaTrialEventBase::AElysiaTrialEventBase()
 {
@@ -27,8 +27,6 @@ AElysiaTrialEventBase::AElysiaTrialEventBase()
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
-
-	TrialOfferActorClass = AElysiaTrialInteractableActor::StaticClass();
 }
 
 void AElysiaTrialEventBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -70,7 +68,10 @@ void AElysiaTrialEventBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime)
+void AElysiaTrialEventBase::InitializeTrial(
+	AActor* InSpawnPoint,
+	float InUntriggeredLifetime,
+	TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass)
 {
 	if (!HasAuthority())
 	{
@@ -85,7 +86,7 @@ void AElysiaTrialEventBase::InitializeTrial(AActor* InSpawnPoint, float InUntrig
 	OfferStartedServerTime = GetCurrentServerWorldTime();
 	OfferExpirationServerTime = OfferLifetime > 0.f ? OfferStartedServerTime + OfferLifetime : 0.f;
 
-	SpawnTrialOfferActor();
+	SpawnTrialOfferActor(InTrialOfferActorClass);
 
 	if (UWorld* World = GetWorld(); World && InUntriggeredLifetime > 0.f)
 	{
@@ -251,9 +252,9 @@ void AElysiaTrialEventBase::BroadcastTrialFinished()
 	OnTrialEventFinished.Broadcast(this);
 }
 
-void AElysiaTrialEventBase::SpawnTrialOfferActor()
+void AElysiaTrialEventBase::SpawnTrialOfferActor(TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass)
 {
-	if (!HasAuthority() || !bSpawnTrialOfferActor || !TrialOfferActorClass || TrialOfferActor)
+	if (!HasAuthority() || !bSpawnTrialOfferActor || !InTrialOfferActorClass || TrialOfferActor)
 	{
 		return;
 	}
@@ -279,7 +280,7 @@ void AElysiaTrialEventBase::SpawnTrialOfferActor()
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	TrialOfferActor = World->SpawnActor<AElysiaTrialInteractableActor>(
-		TrialOfferActorClass,
+		InTrialOfferActorClass,
 		OfferLocation,
 		OfferRotation,
 		SpawnParameters);

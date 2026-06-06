@@ -8,6 +8,7 @@
 #include "ElysiaTrialManager.generated.h"
 
 class AElysiaTrialEventBase;
+class AElysiaTrialInteractableActor;
 class AElysiaTrialSpawnPoint;
 class AElysiaHealthPickup;
 class AElysiaMagnetPickup;
@@ -58,6 +59,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bCancelTriggeredTrialOnPhaseEnd = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Offer")
+	TSubclassOf<AElysiaTrialInteractableActor> TrialOfferActorClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Rewards")
 	TSubclassOf<AElysiaMagnetPickup> TrialRewardMagnetPickupClass;

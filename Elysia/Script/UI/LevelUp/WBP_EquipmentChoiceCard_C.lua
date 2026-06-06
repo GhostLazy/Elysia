@@ -141,10 +141,10 @@ function M:BuildDescriptionText(DisplayData)
         table.insert(Lines, Description)
     end
 
-    if DisplayData.bHasEvolutionCombo then
+    if DisplayData.bHasEvolutionRequirement then
         local RequiredName = TextToString(DisplayData.EvolutionRequiredDisplayName)
         if RequiredName ~= "" then
-            local RequirementState = DisplayData.bEvolutionRequirementOwned and "已拥有" or "未拥有"
+            local RequirementState = DisplayData.bEvolutionRequirementMet and "已拥有" or "未拥有"
             table.insert(Lines, string.format("进化组合：%s（%s）", RequiredName, RequirementState))
         end
     end

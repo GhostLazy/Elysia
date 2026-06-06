@@ -1,16 +1,16 @@
 // Copyright GhostLazy
 
 
-#include "Actor/ElysiaTrialInteractableActor.h"
+#include "Trial/ElysiaTrialInteractableActor.h"
 
-#include "Actor/ElysiaTrialEventBase.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Elysia/Elysia.h"
 #include "Net/UnrealNetwork.h"
-#include "UI/ElysiaTrialIndicatorWidget.h"
+#include "Trial/ElysiaTrialEventBase.h"
+#include "UI/ElysiaUserWidget.h"
 
 AElysiaTrialInteractableActor::AElysiaTrialInteractableActor()
 {
@@ -204,8 +204,8 @@ void AElysiaTrialInteractableActor::InitializeIndicatorWidget()
 	}
 
 	IndicatorWidgetComponent->InitWidget();
-	if (UElysiaTrialIndicatorWidget* IndicatorWidget = Cast<UElysiaTrialIndicatorWidget>(IndicatorWidgetComponent->GetUserWidgetObject()))
+	if (UElysiaUserWidget* IndicatorWidget = Cast<UElysiaUserWidget>(IndicatorWidgetComponent->GetUserWidgetObject()))
 	{
-		IndicatorWidget->SetTrialOfferActor(this);
+		IndicatorWidget->SetWidgetController(this);
 	}
 }

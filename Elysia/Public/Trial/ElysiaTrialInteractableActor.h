@@ -67,7 +67,7 @@ protected:
 	float InteractionRadius = 220.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Indicator")
-	bool bShowIndicatorWhileWaiting = true;
+	bool bShowIndicatorWhileWaiting = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Indicator")
 	FVector IndicatorRelativeLocation = FVector(0.f, 0.f, 180.f);

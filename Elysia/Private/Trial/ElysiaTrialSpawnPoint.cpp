@@ -1,7 +1,7 @@
 // Copyright GhostLazy
 
 
-#include "Actor/ElysiaTrialSpawnPoint.h"
+#include "Trial/ElysiaTrialSpawnPoint.h"
 
 #include "Components/ArrowComponent.h"
 #include "Components/SceneComponent.h"

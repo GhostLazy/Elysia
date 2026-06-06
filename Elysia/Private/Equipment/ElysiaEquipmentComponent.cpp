@@ -245,10 +245,10 @@ void UElysiaEquipmentComponent::RollNextChoices()
 		Choice.NextLevel = FMath::Min(CurrentLevel + 1, MaxLevel);
 		Choice.MaxLevel = MaxLevel;
 		Choice.bAlreadyOwned = OwnedIndex != INDEX_NONE;
+		Choice.EvolutionRequirement = MakeEvolutionRequirement(EquipmentDefinition);
 		Choice.bWillEvolve = EquipmentDefinition.EquipmentType == EElysiaEquipmentType::Weapon
 			&& Choice.NextLevel >= MaxLevel
-			&& !EquipmentDefinition.RequiredPassiveEquipmentId.IsNone()
-			&& GetEquipmentLevelById(EquipmentDefinition.RequiredPassiveEquipmentId) > 0;
+			&& Choice.EvolutionRequirement.bRequirementMet;
 
 		PendingChoices.Add(Choice);
 	}
@@ -365,6 +365,41 @@ bool UElysiaEquipmentComponent::CanEvolve(const FElysiaEquipmentEntry& Equipment
 	}
 
 	return GetEquipmentLevelById(EquipmentEntry.Equipment.RequiredPassiveEquipmentId) > 0;
+}
+
+FElysiaEquipmentEvolutionRequirement UElysiaEquipmentComponent::MakeEvolutionRequirement(
+	const FElysiaEquipmentDefinition& EquipmentDefinition) const
+{
+	FElysiaEquipmentEvolutionRequirement Requirement;
+	if (EquipmentDefinition.EquipmentType != EElysiaEquipmentType::Weapon
+		|| EquipmentDefinition.RequiredPassiveEquipmentId.IsNone())
+	{
+		return Requirement;
+	}
+
+	Requirement.bHasRequirement = true;
+	Requirement.EquipmentId = EquipmentDefinition.RequiredPassiveEquipmentId;
+	Requirement.CurrentLevel = GetEquipmentLevelById(Requirement.EquipmentId);
+	Requirement.bRequirementMet = Requirement.CurrentLevel > 0;
+
+	const FElysiaEquipmentDefinition* RequiredDefinition = EquipmentPool
+		? EquipmentPool->FindEquipmentById(Requirement.EquipmentId)
+		: nullptr;
+	if (!RequiredDefinition)
+	{
+		if (const FElysiaEquipmentEntry* OwnedRequirement = FindOwnedEquipmentById(Requirement.EquipmentId))
+		{
+			RequiredDefinition = &OwnedRequirement->Equipment;
+		}
+	}
+
+	if (RequiredDefinition)
+	{
+		Requirement.DisplayName = RequiredDefinition->DisplayName;
+		Requirement.Icon = RequiredDefinition->Icon;
+	}
+
+	return Requirement;
 }
 
 FElysiaEquipmentChoice UElysiaEquipmentComponent::MakeRecoveryChoice() const

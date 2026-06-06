@@ -1,20 +1,22 @@
 // Copyright GhostLazy
 
 
-#include "Game/ElysiaTrialManager.h"
+#include "Trial/ElysiaTrialManager.h"
 
 #include "Actor/ElysiaHealthPickup.h"
 #include "Actor/ElysiaMagnetPickup.h"
 #include "Actor/ElysiaRunePickup.h"
-#include "Actor/ElysiaTrialEventBase.h"
-#include "Actor/ElysiaTrialSpawnPoint.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "Trial/ElysiaTrialEventBase.h"
+#include "Trial/ElysiaTrialInteractableActor.h"
+#include "Trial/ElysiaTrialSpawnPoint.h"
 
 AElysiaTrialManager::AElysiaTrialManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = false;
+	TrialOfferActorClass = AElysiaTrialInteractableActor::StaticClass();
 }
 
 void AElysiaTrialManager::BeginPlay()
@@ -138,7 +140,12 @@ void AElysiaTrialManager::HandleTrialSpawnTimer()
 
 	ActiveTrialEvent = TrialEvent;
 	TrialEvent->OnTrialEventFinished.AddUObject(this, &AElysiaTrialManager::HandleActiveTrialFinished);
-	TrialEvent->InitializeTrial(TrialSpawnPoint, UntriggeredTrialLifetime);
+	TSubclassOf<AElysiaTrialInteractableActor> OfferActorClass = TrialOfferActorClass;
+	if (!OfferActorClass)
+	{
+		OfferActorClass = AElysiaTrialInteractableActor::StaticClass();
+	}
+	TrialEvent->InitializeTrial(TrialSpawnPoint, UntriggeredTrialLifetime, OfferActorClass);
 }
 
 void AElysiaTrialManager::HandleActiveTrialFinished(AElysiaTrialEventBase* FinishedTrial)

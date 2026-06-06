@@ -81,14 +81,21 @@ struct FElysiaEquipmentChoiceDisplayData
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	bool bShowLevelText = true;
 
+	// 装备系统已经整理好的进化需求；UI 只负责展示。
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	bool bHasEvolutionCombo = false;
+	bool bHasEvolutionRequirement = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	FText EvolutionRequiredDisplayName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	bool bEvolutionRequirementOwned = false;
+	TObjectPtr<UTexture2D> EvolutionRequiredIcon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	int32 EvolutionRequiredCurrentLevel = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
+	bool bEvolutionRequirementMet = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	float RecoveryHealth = 0.f;
@@ -136,5 +143,4 @@ protected:
 	void HandleOwnedEquipmentsChanged();
 	void RefreshCurrentEquipmentChoiceDisplays();
 	FElysiaEquipmentChoiceDisplayData MakeChoiceDisplayData(const FElysiaEquipmentChoice& Choice, int32 ChoiceIndex) const;
-	const FElysiaEquipmentDefinition* FindEquipmentDefinition(FName EquipmentId) const;
 };

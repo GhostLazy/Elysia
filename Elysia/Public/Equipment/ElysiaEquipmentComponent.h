@@ -28,6 +28,30 @@ struct FElysiaEquipmentEntry
 };
 
 USTRUCT(BlueprintType)
+struct FElysiaEquipmentEvolutionRequirement
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	bool bHasRequirement = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	FName EquipmentId;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	int32 CurrentLevel = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Evolution")
+	bool bRequirementMet = false;
+};
+
+USTRUCT(BlueprintType)
 struct FElysiaEquipmentChoice
 {
 	GENERATED_BODY()
@@ -52,6 +76,9 @@ struct FElysiaEquipmentChoice
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
 	bool bWillEvolve = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
+	FElysiaEquipmentEvolutionRequirement EvolutionRequirement;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
 	bool bIsRecoveryChoice = false;
@@ -136,6 +163,7 @@ private:
 	void EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition);
 	void UpdateWeaponEvolutionStates();
 	bool CanEvolve(const FElysiaEquipmentEntry& EquipmentEntry) const;
+	FElysiaEquipmentEvolutionRequirement MakeEvolutionRequirement(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	FElysiaEquipmentChoice MakeRecoveryChoice() const;
 	FElysiaEquipmentEntry* FindOwnedEquipment(FName EquipmentId);
 	const FElysiaEquipmentEntry* FindOwnedEquipmentById(FName EquipmentId) const;
