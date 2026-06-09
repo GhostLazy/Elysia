@@ -9,6 +9,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Player/ElysiaPlayerState.h"
 #include "Elysia/Elysia.h"
+#include "Net/UnrealNetwork.h"
 
 AElysiaXPBall::AElysiaXPBall()
 {
@@ -27,10 +28,24 @@ AElysiaXPBall::AElysiaXPBall()
 	ProjectileMovement->bRotationFollowsVelocity = false;
 }
 
+void AElysiaXPBall::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AElysiaXPBall, XPBallLevel);
+}
+
+void AElysiaXPBall::SetXPBallLevel(const int32 InLevel)
+{
+	XPBallLevel = FMath::Max(1, InLevel);
+	SetColorByLevel(XPBallLevel);
+}
+
 void AElysiaXPBall::BeginPlay()
 {
 	Super::BeginPlay();
 	SetReplicateMovement(true);
+	SetColorByLevel(XPBallLevel);
 }
 
 void AElysiaXPBall::HandlePickedBy(AElysiaCharacter* Character)
@@ -77,4 +92,9 @@ void AElysiaXPBall::CollectBy(AActor* Collector)
 	}
 
 	Destroy();
+}
+
+void AElysiaXPBall::OnRep_XPBallLevel()
+{
+	SetColorByLevel(XPBallLevel);
 }

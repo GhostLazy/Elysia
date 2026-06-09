@@ -37,9 +37,12 @@ void AElysiaTrialEventBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(AElysiaTrialEventBase, TriggeringActor);
 	DOREPLIFETIME(AElysiaTrialEventBase, TrialOfferActor);
 	DOREPLIFETIME(AElysiaTrialEventBase, OfferLifetime);
+	DOREPLIFETIME(AElysiaTrialEventBase, TrialDuration);
 	DOREPLIFETIME(AElysiaTrialEventBase, TrialEventState);
 	DOREPLIFETIME(AElysiaTrialEventBase, OfferStartedServerTime);
 	DOREPLIFETIME(AElysiaTrialEventBase, OfferExpirationServerTime);
+	DOREPLIFETIME(AElysiaTrialEventBase, TrialStartedServerTime);
+	DOREPLIFETIME(AElysiaTrialEventBase, TrialExpirationServerTime);
 }
 
 void AElysiaTrialEventBase::BeginPlay()
@@ -63,7 +66,7 @@ void AElysiaTrialEventBase::BeginPlay()
 
 void AElysiaTrialEventBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	ClearExpirationTimer();
+	ClearAllExpirationTimers();
 	DestroyTrialOfferActor();
 	Super::EndPlay(EndPlayReason);
 }
@@ -82,6 +85,8 @@ void AElysiaTrialEventBase::InitializeTrial(
 	TrialEventState = EElysiaTrialEventState::WaitingToBeTriggered;
 	bTrialFinishedBroadcasted = false;
 	OfferLifetime = InUntriggeredLifetime;
+	TrialStartedServerTime = 0.f;
+	TrialExpirationServerTime = 0.f;
 
 	OfferStartedServerTime = GetCurrentServerWorldTime();
 	OfferExpirationServerTime = OfferLifetime > 0.f ? OfferStartedServerTime + OfferLifetime : 0.f;
@@ -98,7 +103,6 @@ void AElysiaTrialEventBase::InitializeTrial(
 		false);
 	}
 
-	OnTrialOffered();
 }
 
 void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
@@ -108,9 +112,10 @@ void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
 		return;
 	}
 
-	ClearExpirationTimer();
+	ClearOfferExpirationTimer();
 	TrialEventState = EElysiaTrialEventState::Triggered;
 	TriggeringActor = TriggerActor;
+	StartTrialExpirationTimer();
 
 	if (bDisableTriggerCollisionWhenTriggered && TriggerSphere)
 	{
@@ -118,7 +123,7 @@ void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
 	}
 
 	DestroyTrialOfferActor();
-	OnTrialTriggered(TriggerActor);
+	HandleTrialTriggered(TriggerActor);
 
 	if (bDestroyWhenTriggered)
 	{
@@ -136,9 +141,9 @@ void AElysiaTrialEventBase::CompleteTrial()
 		return;
 	}
 
-	ClearExpirationTimer();
+	ClearAllExpirationTimers();
 	TrialEventState = EElysiaTrialEventState::Completed;
-	OnTrialCompleted();
+	HandleTrialCompleted();
 	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
@@ -154,9 +159,9 @@ void AElysiaTrialEventBase::CancelTrial()
 		return;
 	}
 
-	ClearExpirationTimer();
+	ClearAllExpirationTimers();
 	TrialEventState = EElysiaTrialEventState::Cancelled;
-	OnTrialCancelled();
+	HandleTrialCancelled();
 	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
@@ -165,6 +170,13 @@ void AElysiaTrialEventBase::CancelTrial()
 bool AElysiaTrialEventBase::CanBeTriggeredBy(AActor* CandidateActor) const
 {
 	return TrialEventState == EElysiaTrialEventState::WaitingToBeTriggered && CanTriggerTrial(CandidateActor);
+}
+
+bool AElysiaTrialEventBase::IsFinished() const
+{
+	return TrialEventState == EElysiaTrialEventState::Completed
+		|| TrialEventState == EElysiaTrialEventState::Expired
+		|| TrialEventState == EElysiaTrialEventState::Cancelled;
 }
 
 float AElysiaTrialEventBase::GetRemainingOfferTime() const
@@ -177,7 +189,17 @@ float AElysiaTrialEventBase::GetRemainingOfferTime() const
 	return FMath::Max(0.f, OfferExpirationServerTime - GetCurrentServerWorldTime());
 }
 
-bool AElysiaTrialEventBase::CanTriggerTrial_Implementation(AActor* CandidateActor) const
+float AElysiaTrialEventBase::GetRemainingTrialTime() const
+{
+	if (TrialDuration <= 0.f || TrialExpirationServerTime <= 0.f)
+	{
+		return 0.f;
+	}
+
+	return FMath::Max(0.f, TrialExpirationServerTime - GetCurrentServerWorldTime());
+}
+
+bool AElysiaTrialEventBase::CanTriggerTrial(AActor* CandidateActor) const
 {
 	if (!IsValid(CandidateActor))
 	{
@@ -188,23 +210,19 @@ bool AElysiaTrialEventBase::CanTriggerTrial_Implementation(AActor* CandidateActo
 	return CombatInterface ? CombatInterface->IsPlayer() && !CombatInterface->IsDead() : CandidateActor->ActorHasTag(FName("Player"));
 }
 
-void AElysiaTrialEventBase::OnTrialOffered_Implementation()
+void AElysiaTrialEventBase::HandleTrialTriggered(AActor* TriggerActor)
 {
 }
 
-void AElysiaTrialEventBase::OnTrialTriggered_Implementation(AActor* TriggerActor)
+void AElysiaTrialEventBase::HandleTrialCompleted()
 {
 }
 
-void AElysiaTrialEventBase::OnTrialCompleted_Implementation()
+void AElysiaTrialEventBase::HandleTrialExpired()
 {
 }
 
-void AElysiaTrialEventBase::OnTrialExpired_Implementation()
-{
-}
-
-void AElysiaTrialEventBase::OnTrialCancelled_Implementation()
+void AElysiaTrialEventBase::HandleTrialCancelled()
 {
 }
 
@@ -221,23 +239,57 @@ void AElysiaTrialEventBase::HandleTriggerSphereBeginOverlap(
 
 void AElysiaTrialEventBase::ExpireTrial()
 {
-	if (!HasAuthority() || TrialEventState != EElysiaTrialEventState::WaitingToBeTriggered)
+	if (!HasAuthority()
+		|| TrialEventState == EElysiaTrialEventState::Completed
+		|| TrialEventState == EElysiaTrialEventState::Expired
+		|| TrialEventState == EElysiaTrialEventState::Cancelled)
 	{
 		return;
 	}
 
+	ClearAllExpirationTimers();
 	TrialEventState = EElysiaTrialEventState::Expired;
-	OnTrialExpired();
+	HandleTrialExpired();
 	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
 	Destroy();
 }
 
-void AElysiaTrialEventBase::ClearExpirationTimer()
+void AElysiaTrialEventBase::ClearOfferExpirationTimer()
 {
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(ExpirationTimerHandle);
+	}
+}
+
+void AElysiaTrialEventBase::ClearTrialExpirationTimer()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TrialExpirationTimerHandle);
+	}
+}
+
+void AElysiaTrialEventBase::ClearAllExpirationTimers()
+{
+	ClearOfferExpirationTimer();
+	ClearTrialExpirationTimer();
+}
+
+void AElysiaTrialEventBase::StartTrialExpirationTimer()
+{
+	TrialStartedServerTime = GetCurrentServerWorldTime();
+	TrialExpirationServerTime = TrialDuration > 0.f ? TrialStartedServerTime + TrialDuration : 0.f;
+
+	if (UWorld* World = GetWorld(); World && TrialDuration > 0.f)
+	{
+		World->GetTimerManager().SetTimer(
+			TrialExpirationTimerHandle,
+			this,
+			&AElysiaTrialEventBase::ExpireTrial,
+			TrialDuration,
+			false);
 	}
 }
 

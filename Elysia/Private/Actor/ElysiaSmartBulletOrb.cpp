@@ -9,6 +9,7 @@ AElysiaSmartBulletOrb::AElysiaSmartBulletOrb()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+	SetNetUpdateFrequency(100.f);
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>("SceneRoot");
 	SetRootComponent(SceneRoot);

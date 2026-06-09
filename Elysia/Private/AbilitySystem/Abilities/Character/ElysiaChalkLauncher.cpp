@@ -10,14 +10,26 @@ void UElysiaChalkLauncher::ActivateAbility(const FGameplayAbilitySpecHandle Hand
                                            const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
+	{
+		return;
+	}
 	
 	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaChalkLauncher::SpawnProjectile, Interval, true);
 }
 
 void UElysiaChalkLauncher::SpawnProjectile()
 {
-	const FVector SpawnLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
-	const FRotator SpawnRotationBase = GetAvatarActorFromActorInfo()->GetActorRotation();
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
+	{
+		return;
+	}
+
+	const FVector SpawnLocation = AvatarActor->GetActorLocation();
+	const FRotator SpawnRotationBase = AvatarActor->GetActorRotation();
 	const int32 NumChalks = IsWeaponEvolved() ? EvolvedProjectileCount : GetBaseProjectileCount(ProjectileCountByLevel);
 	const float Offset = 360 / NumChalks;
 	for (int32 i = 0; i < NumChalks; ++i)

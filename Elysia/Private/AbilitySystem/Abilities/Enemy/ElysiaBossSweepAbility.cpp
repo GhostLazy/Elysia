@@ -5,9 +5,8 @@
 
 #include "Character/ElysiaBossBase.h"
 #include "Engine/OverlapResult.h"
+#include "ElysiaGameplayTags.h"
 #include "Elysia/Elysia.h"
-#include "Kismet/GameplayStatics.h"
-#include "NiagaraComponent.h"
 
 void UElysiaBossSweepAbility::ExecuteBossSkill()
 {
@@ -65,71 +64,34 @@ void UElysiaBossSweepAbility::ExecuteBossSkill()
 	}
 }
 
-void UElysiaBossSweepAbility::OnBossAbilityWindupStarted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction)
+FGameplayTag UElysiaBossSweepAbility::GetDefaultWindupGameplayCueTag() const
 {
-	Super::OnBossAbilityWindupStarted_Implementation(Boss, Origin, Direction);
-	DestroyWarningEffect();
-
-	ActiveWarningEffect = SpawnEffectAtLocation(SweepWarningEffect, Origin, Direction);
-	ApplySweepEffectParameters(ActiveWarningEffect);
-	if (ActiveWarningEffect)
-	{
-		const float Scale = FMath::Max(0.01f, SweepRadius / 100.f);
-		ActiveWarningEffect->SetWorldScale3D(FVector(Scale, Scale, 1.f));
-	}
+	return FElysiaGameplayTags::Get().GameplayCue_Boss_Sweep_Windup;
 }
 
-void UElysiaBossSweepAbility::OnBossAbilityExecuted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction)
+FGameplayTag UElysiaBossSweepAbility::GetDefaultExecuteGameplayCueTag() const
 {
-	DestroyWarningEffect();
-	Super::OnBossAbilityExecuted_Implementation(Boss, Origin, Direction);
-
-	if (UNiagaraComponent* ImpactEffect = SpawnEffectAtLocation(SweepImpactEffect, Origin, Direction))
-	{
-		ApplySweepEffectParameters(ImpactEffect);
-		const float Scale = FMath::Max(0.01f, SweepRadius / 100.f);
-		ImpactEffect->SetWorldScale3D(FVector(Scale, Scale, 1.f));
-	}
-
-	if (SweepImpactSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, SweepImpactSound, Origin);
-	}
+	return FElysiaGameplayTags::Get().GameplayCue_Boss_Sweep_Execute;
 }
 
-void UElysiaBossSweepAbility::OnBossAbilityRecovered_Implementation(AElysiaBossBase* Boss)
+void UElysiaBossSweepAbility::BuildWindupGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
 {
-	DestroyWarningEffect();
-	Super::OnBossAbilityRecovered_Implementation(Boss);
+	Super::BuildWindupGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = SweepRadius;
+	OutParameters.NormalizedMagnitude = SweepAngle;
 }
 
-void UElysiaBossSweepAbility::ApplySweepEffectParameters(UNiagaraComponent* NiagaraComponent) const
+void UElysiaBossSweepAbility::BuildExecuteGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
 {
-	if (!NiagaraComponent)
-	{
-		return;
-	}
-
-	if (!NiagaraRadiusParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraRadiusParameterName, SweepRadius);
-	}
-	if (!NiagaraAngleParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraAngleParameterName, SweepAngle);
-	}
-	if (!NiagaraDurationParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraDurationParameterName, WindupTime);
-	}
-}
-
-void UElysiaBossSweepAbility::DestroyWarningEffect()
-{
-	if (ActiveWarningEffect)
-	{
-		ActiveWarningEffect->Deactivate();
-		ActiveWarningEffect->DestroyComponent();
-		ActiveWarningEffect = nullptr;
-	}
+	Super::BuildExecuteGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = SweepRadius;
+	OutParameters.NormalizedMagnitude = SweepAngle;
 }

@@ -27,11 +27,12 @@ class ELYSIA_API AElysiaEnemy : public AElysiaCharacterBase
 public:
 	
 	AElysiaEnemy();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 	virtual void Die() override;
 	FOnEnemyDiedSignature OnEnemyDied;
 	EElysiaEnemyType GetEnemyType() const { return EnemyType; }
-	int32 GetLevel() const { return Level; }
+	int32 GetEnemyLevel() const { return Level; }
 	void SetLevel(int32 InLevel) { Level = FMath::Max(1, InLevel); }
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
@@ -48,7 +49,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	FScalableFloat XPRewards = FScalableFloat();
 	
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(Replicated, EditDefaultsOnly)
 	int32 Level = 1;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")

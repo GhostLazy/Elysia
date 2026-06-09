@@ -3,11 +3,9 @@
 
 #include "AbilitySystem/Abilities/Enemy/ElysiaBossGameplayAbility.h"
 
+#include "AbilitySystemComponent.h"
 #include "Character/ElysiaBossBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
 
 UElysiaBossGameplayAbility::UElysiaBossGameplayAbility()
@@ -88,7 +86,7 @@ void UElysiaBossGameplayAbility::ActivateAbility(
 	}
 
 	const FVector Origin = Boss->GetActorLocation();
-	OnBossAbilityWindupStarted(Boss, Origin, LockedSkillDirection);
+	AddBossAbilityWindupCue(Boss, Origin, LockedSkillDirection);
 
 	if (WindupTime <= 0.f)
 	{
@@ -119,7 +117,14 @@ void UElysiaBossGameplayAbility::EndAbility(
 	AElysiaBossBase* Boss = GetBossAvatar(ActorInfo);
 	if (Boss)
 	{
-		OnBossAbilityRecovered(Boss);
+		RemoveBossAbilityWindupCue(Boss);
+
+		FGameplayCueParameters RecoveryCueParameters;
+		const FVector RecoveryOrigin = Boss->GetActorLocation();
+		const FVector RecoveryDirection = Boss->GetActorForwardVector().GetSafeNormal2D();
+		BuildRecoveryGameplayCueParameters(RecoveryCueParameters, Boss, RecoveryOrigin, RecoveryDirection);
+		ExecuteBossAbilityCue(GetRecoveryGameplayCueTag(), RecoveryCueParameters);
+
 		if (bNotifiedBossAbilityActive)
 		{
 			Boss->NotifyBossAbilityEnded(this);
@@ -176,64 +181,52 @@ bool UElysiaBossGameplayAbility::ApplyDamageToTarget(AActor* TargetActor) const
 	return Boss ? Boss->ApplyBossDamageToTarget(TargetActor, DamageEffectClass, DamageEffectLevel) : false;
 }
 
-UNiagaraComponent* UElysiaBossGameplayAbility::SpawnEffectAtLocation(UNiagaraSystem* Effect, const FVector& Location, const FVector& Direction) const
+FGameplayTag UElysiaBossGameplayAbility::GetDefaultWindupGameplayCueTag() const
 {
-	if (!Effect)
-	{
-		return nullptr;
-	}
-
-	const FVector SafeDirection = Direction.GetSafeNormal2D();
-	const FRotator Rotation = SafeDirection.IsNearlyZero() ? FRotator::ZeroRotator : SafeDirection.Rotation();
-	return UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		this,
-		Effect,
-		Location + EffectLocationOffset,
-		Rotation);
+	return FGameplayTag();
 }
 
-UNiagaraComponent* UElysiaBossGameplayAbility::SpawnEffectAttachedToBoss(UNiagaraSystem* Effect, const FVector& RelativeLocation, const FVector& Direction) const
+FGameplayTag UElysiaBossGameplayAbility::GetDefaultExecuteGameplayCueTag() const
 {
-	AElysiaBossBase* Boss = GetBossAvatar();
-	if (!Effect || !Boss || !Boss->GetRootComponent())
-	{
-		return nullptr;
-	}
-
-	const FVector SafeDirection = Direction.GetSafeNormal2D();
-	const FRotator Rotation = SafeDirection.IsNearlyZero() ? FRotator::ZeroRotator : SafeDirection.Rotation();
-	return UNiagaraFunctionLibrary::SpawnSystemAttached(
-		Effect,
-		Boss->GetRootComponent(),
-		NAME_None,
-		RelativeLocation + EffectLocationOffset,
-		Rotation,
-		EAttachLocation::KeepRelativeOffset,
-		true);
+	return FGameplayTag();
 }
 
-void UElysiaBossGameplayAbility::OnBossAbilityWindupStarted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction)
+FGameplayTag UElysiaBossGameplayAbility::GetDefaultRecoveryGameplayCueTag() const
 {
-	if (WindupSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, WindupSound, Origin);
-	}
+	return FGameplayTag();
 }
 
-void UElysiaBossGameplayAbility::OnBossAbilityExecuted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction)
+void UElysiaBossGameplayAbility::BuildWindupGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
 {
-	if (ExecuteSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, ExecuteSound, Origin);
-	}
+	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = WindupTime;
+	OutParameters.NormalizedMagnitude = RecoveryTime;
 }
 
-void UElysiaBossGameplayAbility::OnBossAbilityRecovered_Implementation(AElysiaBossBase* Boss)
+void UElysiaBossGameplayAbility::BuildExecuteGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
 {
-	if (RecoveredSound && Boss)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, RecoveredSound, Boss->GetActorLocation());
-	}
+	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = WindupTime;
+	OutParameters.NormalizedMagnitude = RecoveryTime;
+}
+
+void UElysiaBossGameplayAbility::BuildRecoveryGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
+{
+	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = RecoveryTime;
+	OutParameters.NormalizedMagnitude = WindupTime;
 }
 
 void UElysiaBossGameplayAbility::ExecuteBossSkillAfterWindup()
@@ -246,7 +239,12 @@ void UElysiaBossGameplayAbility::ExecuteBossSkillAfterWindup()
 	}
 
 	const FVector Origin = Boss->GetActorLocation();
-	OnBossAbilityExecuted(Boss, Origin, LockedSkillDirection);
+	RemoveBossAbilityWindupCue(Boss);
+
+	FGameplayCueParameters ExecuteCueParameters;
+	BuildExecuteGameplayCueParameters(ExecuteCueParameters, Boss, Origin, LockedSkillDirection);
+	ExecuteBossAbilityCue(GetExecuteGameplayCueTag(), ExecuteCueParameters);
+
 	ExecuteBossSkill();
 
 	if (ShouldAutoRecoverAfterExecute())
@@ -278,4 +276,98 @@ FVector UElysiaBossGameplayAbility::CalculateTargetDirection() const
 	}
 
 	return Boss ? Boss->GetActorForwardVector().GetSafeNormal2D() : FVector::ForwardVector;
+}
+
+void UElysiaBossGameplayAbility::AddBossAbilityWindupCue(
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction)
+{
+	const FGameplayTag CueTag = GetWindupGameplayCueTag();
+	if (!Boss || !CueTag.IsValid())
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = Boss->GetAbilitySystemComponent())
+	{
+		FGameplayCueParameters CueParameters;
+		BuildWindupGameplayCueParameters(CueParameters, Boss, Origin, Direction);
+		AbilitySystemComponent->AddGameplayCue(CueTag, CueParameters);
+		bWindupGameplayCueActive = true;
+	}
+}
+
+void UElysiaBossGameplayAbility::RemoveBossAbilityWindupCue(AElysiaBossBase* Boss)
+{
+	if (!bWindupGameplayCueActive || !Boss)
+	{
+		return;
+	}
+
+	const FGameplayTag CueTag = GetWindupGameplayCueTag();
+	if (!CueTag.IsValid())
+	{
+		bWindupGameplayCueActive = false;
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = Boss->GetAbilitySystemComponent())
+	{
+		AbilitySystemComponent->RemoveGameplayCue(CueTag);
+	}
+	bWindupGameplayCueActive = false;
+}
+
+void UElysiaBossGameplayAbility::ExecuteBossAbilityCue(
+	FGameplayTag CueTag,
+	const FGameplayCueParameters& Parameters) const
+{
+	AElysiaBossBase* Boss = GetBossAvatar();
+	if (!Boss || !CueTag.IsValid())
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* AbilitySystemComponent = Boss->GetAbilitySystemComponent())
+	{
+		AbilitySystemComponent->ExecuteGameplayCue(CueTag, Parameters);
+	}
+}
+
+void UElysiaBossGameplayAbility::BuildBaseGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
+{
+	OutParameters = FGameplayCueParameters();
+	OutParameters.Location = Origin;
+	OutParameters.Normal = Direction.GetSafeNormal2D();
+	OutParameters.Instigator = Boss;
+	OutParameters.EffectCauser = Boss;
+	OutParameters.SourceObject = this;
+	OutParameters.AbilityLevel = FMath::Max(1, GetAbilityLevel());
+	OutParameters.GameplayEffectLevel = FMath::Max(1, FMath::RoundToInt(DamageEffectLevel));
+}
+
+FGameplayTag UElysiaBossGameplayAbility::GetWindupGameplayCueTag() const
+{
+	return WindupGameplayCueTagOverride.IsValid()
+		? WindupGameplayCueTagOverride
+		: GetDefaultWindupGameplayCueTag();
+}
+
+FGameplayTag UElysiaBossGameplayAbility::GetExecuteGameplayCueTag() const
+{
+	return ExecuteGameplayCueTagOverride.IsValid()
+		? ExecuteGameplayCueTagOverride
+		: GetDefaultExecuteGameplayCueTag();
+}
+
+FGameplayTag UElysiaBossGameplayAbility::GetRecoveryGameplayCueTag() const
+{
+	return RecoveryGameplayCueTagOverride.IsValid()
+		? RecoveryGameplayCueTagOverride
+		: GetDefaultRecoveryGameplayCueTag();
 }

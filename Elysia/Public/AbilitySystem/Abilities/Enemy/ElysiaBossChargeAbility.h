@@ -15,6 +15,18 @@ protected:
 
 	virtual void ExecuteBossSkill() override;
 	virtual bool ShouldAutoRecoverAfterExecute() const override { return false; }
+	virtual FGameplayTag GetDefaultWindupGameplayCueTag() const override;
+	virtual FGameplayTag GetDefaultExecuteGameplayCueTag() const override;
+	virtual void BuildWindupGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const override;
+	virtual void BuildExecuteGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const override;
 
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle Handle,

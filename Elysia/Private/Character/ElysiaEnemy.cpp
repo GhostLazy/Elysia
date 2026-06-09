@@ -18,6 +18,7 @@
 #include "Elysia/Elysia.h"
 #include "GameFramework/Character.h"
 #include "Interface/CombatInterface.h"
+#include "Net/UnrealNetwork.h"
 
 AElysiaEnemy::AElysiaEnemy()
 {
@@ -47,6 +48,13 @@ AElysiaEnemy::AElysiaEnemy()
 	
 	Tags.Add(FName("Enemy"));
 	Tags.Add(FName("Damageable"));
+}
+
+void AElysiaEnemy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(AElysiaEnemy, Level);
 }
 
 void AElysiaEnemy::BeginPlay()
@@ -130,7 +138,7 @@ void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
 			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
 			{
 				XPBall->SetXPValue(XPValue);
-				XPBall->SetColorByLevel(Level);
+				XPBall->SetXPBallLevel(Level);
 				XPBall->FinishSpawning(SpawnTransform);
 			}
 		}

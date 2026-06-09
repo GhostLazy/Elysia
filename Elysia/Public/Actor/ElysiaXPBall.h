@@ -18,9 +18,14 @@ class ELYSIA_API AElysiaXPBall : public AElysiaPickupBase
 public:	
 	
 	AElysiaXPBall();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	int32 GetXPValue() const { return XPValue; }
 	void SetXPValue(const int32 InXP) { XPValue = InXP; }
+
+	int32 GetXPBallLevel() const { return XPBallLevel; }
+	void SetXPBallLevel(const int32 InLevel);
 	
 	void CollectBy(AActor* Collector);
 	void BeginAttractionTo(AElysiaCharacter* Character);
@@ -31,6 +36,9 @@ public:
 protected:
 	
 	int32 XPValue = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_XPBallLevel)
+	int32 XPBallLevel = 1;
 	
 	virtual void BeginPlay() override;
 	virtual void HandlePickedBy(AElysiaCharacter* Character) override;
@@ -49,6 +57,9 @@ protected:
 	float LifeSpan = 5.f;
 	
 private:
+
+	UFUNCTION()
+	void OnRep_XPBallLevel();
 	
 	bool bTargetHasSet = false;
 

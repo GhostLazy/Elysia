@@ -6,6 +6,7 @@
 #include "Character/ElysiaBossBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/OverlapResult.h"
+#include "ElysiaGameplayTags.h"
 #include "Elysia/Elysia.h"
 #include "TimerManager.h"
 
@@ -31,6 +32,38 @@ void UElysiaBossChargeAbility::ExecuteBossSkill()
 			FMath::Max(0.01f, ChargeTickInterval),
 			true);
 	}
+}
+
+FGameplayTag UElysiaBossChargeAbility::GetDefaultWindupGameplayCueTag() const
+{
+	return FElysiaGameplayTags::Get().GameplayCue_Boss_Charge_Windup;
+}
+
+FGameplayTag UElysiaBossChargeAbility::GetDefaultExecuteGameplayCueTag() const
+{
+	return FElysiaGameplayTags::Get().GameplayCue_Boss_Charge_Execute;
+}
+
+void UElysiaBossChargeAbility::BuildWindupGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
+{
+	Super::BuildWindupGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = ChargeMaxDistance;
+	OutParameters.NormalizedMagnitude = ChargeSpeed;
+}
+
+void UElysiaBossChargeAbility::BuildExecuteGameplayCueParameters(
+	FGameplayCueParameters& OutParameters,
+	AElysiaBossBase* Boss,
+	const FVector& Origin,
+	const FVector& Direction) const
+{
+	Super::BuildExecuteGameplayCueParameters(OutParameters, Boss, Origin, Direction);
+	OutParameters.RawMagnitude = ChargeMaxDistance;
+	OutParameters.NormalizedMagnitude = ChargeSpeed;
 }
 
 void UElysiaBossChargeAbility::EndAbility(

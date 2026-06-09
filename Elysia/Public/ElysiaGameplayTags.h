@@ -46,6 +46,14 @@ public:
 	
 	// 动画事件
 	FGameplayTag Event_Montage_Elysia_NormalAttack;
+
+	// GameplayCue：Boss技能表现
+	FGameplayTag GameplayCue_Boss_Charge_Windup;
+	FGameplayTag GameplayCue_Boss_Charge_Execute;
+	FGameplayTag GameplayCue_Boss_Sweep_Windup;
+	FGameplayTag GameplayCue_Boss_Sweep_Execute;
+	FGameplayTag GameplayCue_Boss_Laser_Windup;
+	FGameplayTag GameplayCue_Boss_Laser_Execute;
 	
 private:
 	

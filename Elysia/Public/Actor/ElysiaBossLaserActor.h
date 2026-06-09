@@ -7,10 +7,7 @@
 #include "ElysiaBossLaserActor.generated.h"
 
 class AElysiaBossBase;
-class UNiagaraComponent;
-class UNiagaraSystem;
 class USceneComponent;
-class USoundBase;
 class UGameplayEffect;
 
 UCLASS()
@@ -35,40 +32,11 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Boss|Laser")
-	void OnLaserInitialized(FVector InOrigin, FVector InDirection);
-
-	virtual void OnLaserInitialized_Implementation(FVector InOrigin, FVector InDirection);
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Boss|Laser")
-	void OnLaserFinished();
-
-	virtual void OnLaserFinished_Implementation();
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Laser")
 	TObjectPtr<USceneComponent> SceneRoot;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	TObjectPtr<UNiagaraSystem> LaserEffect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	TObjectPtr<USoundBase> LaserStartSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	TObjectPtr<USoundBase> LaserEndSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	FName NiagaraLengthParameterName = FName("User.Length");
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	FName NiagaraWidthParameterName = FName("User.Width");
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Laser|VFX")
-	FName NiagaraDurationParameterName = FName("User.Duration");
-
 private:
 	void StartLaser();
-	void ApplyLaserEffectParameters(UNiagaraComponent* NiagaraComponent) const;
 	void HandleDamageTick();
 	void FinishLaser();
 
@@ -98,9 +66,6 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Boss|Laser", meta = (AllowPrivateAccess = "true"))
 	FVector Direction = FVector::ForwardVector;
-
-	UPROPERTY()
-	TObjectPtr<UNiagaraComponent> LaserEffectComponent;
 
 	FTimerHandle DamageTickTimerHandle;
 	FTimerHandle FinishTimerHandle;

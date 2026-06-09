@@ -252,7 +252,7 @@ void AElysiaBossBase::GrantBossAbilities()
 
 		if (!bAlreadyGranted)
 		{
-			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, FMath::Max(1, GetLevel())));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, FMath::Max(1, GetEnemyLevel())));
 		}
 	}
 }

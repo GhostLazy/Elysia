@@ -55,6 +55,9 @@ public:
 	bool HasBeenTriggered() const { return TrialEventState == EElysiaTrialEventState::Triggered; }
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
+	bool IsFinished() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
 	bool CanBeTriggeredBy(AActor* CandidateActor) const;
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
@@ -62,6 +65,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
 	float GetTotalOfferTime() const { return OfferLifetime; }
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	float GetRemainingTrialTime() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	float GetTotalTrialTime() const { return TrialDuration; }
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
 	AElysiaTrialInteractableActor* GetTrialOfferActor() const { return TrialOfferActor; }
@@ -88,6 +97,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bDestroyWhenTriggered = false;
 
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
+	float TrialDuration = 30.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Overlap Trigger")
 	bool bDisableTriggerCollisionWhenTriggered = true;
 
@@ -109,29 +121,11 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial|Offer")
 	float OfferLifetime = 0.f;
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	bool CanTriggerTrial(AActor* CandidateActor) const;
-	virtual bool CanTriggerTrial_Implementation(AActor* CandidateActor) const;
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	void OnTrialOffered();
-	virtual void OnTrialOffered_Implementation();
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	void OnTrialTriggered(AActor* TriggerActor);
-	virtual void OnTrialTriggered_Implementation(AActor* TriggerActor);
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	void OnTrialCompleted();
-	virtual void OnTrialCompleted_Implementation();
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	void OnTrialExpired();
-	virtual void OnTrialExpired_Implementation();
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Trial")
-	void OnTrialCancelled();
-	virtual void OnTrialCancelled_Implementation();
+	virtual bool CanTriggerTrial(AActor* CandidateActor) const;
+	virtual void HandleTrialTriggered(AActor* TriggerActor);
+	virtual void HandleTrialCompleted();
+	virtual void HandleTrialExpired();
+	virtual void HandleTrialCancelled();
 
 private:
 
@@ -145,13 +139,17 @@ private:
 		const FHitResult& SweepResult);
 
 	void ExpireTrial();
-	void ClearExpirationTimer();
+	void ClearOfferExpirationTimer();
+	void ClearTrialExpirationTimer();
+	void ClearAllExpirationTimers();
+	void StartTrialExpirationTimer();
 	void BroadcastTrialFinished();
 	void SpawnTrialOfferActor(TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass);
 	void DestroyTrialOfferActor();
 	float GetCurrentServerWorldTime() const;
 
 	FTimerHandle ExpirationTimerHandle;
+	FTimerHandle TrialExpirationTimerHandle;
 
 	UPROPERTY(Replicated)
 	EElysiaTrialEventState TrialEventState = EElysiaTrialEventState::WaitingToBeTriggered;
@@ -161,6 +159,12 @@ private:
 
 	UPROPERTY(Replicated)
 	float OfferExpirationServerTime = 0.f;
+
+	UPROPERTY(Replicated)
+	float TrialStartedServerTime = 0.f;
+
+	UPROPERTY(Replicated)
+	float TrialExpirationServerTime = 0.f;
 
 	bool bTrialFinishedBroadcasted = false;
 };

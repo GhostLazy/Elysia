@@ -4,14 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayTagContainer.h"
 #include "ElysiaBossGameplayAbility.generated.h"
 
 class AElysiaBossBase;
-class UNiagaraComponent;
-class UNiagaraSystem;
 class UAnimMontage;
 class UGameplayEffect;
-class USoundBase;
 
 /**
  * Base class for Boss abilities. Boss AI selects these abilities through GAS,
@@ -62,20 +61,24 @@ protected:
 	FVector GetLockedSkillDirection() const { return LockedSkillDirection; }
 	bool ApplyDamageToTarget(AActor* TargetActor) const;
 
-	UNiagaraComponent* SpawnEffectAtLocation(UNiagaraSystem* Effect, const FVector& Location, const FVector& Direction) const;
-	UNiagaraComponent* SpawnEffectAttachedToBoss(UNiagaraSystem* Effect, const FVector& RelativeLocation, const FVector& Direction) const;
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Boss Ability")
-	void OnBossAbilityWindupStarted(AElysiaBossBase* Boss, FVector Origin, FVector Direction);
-	virtual void OnBossAbilityWindupStarted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction);
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Boss Ability")
-	void OnBossAbilityExecuted(AElysiaBossBase* Boss, FVector Origin, FVector Direction);
-	virtual void OnBossAbilityExecuted_Implementation(AElysiaBossBase* Boss, FVector Origin, FVector Direction);
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Boss Ability")
-	void OnBossAbilityRecovered(AElysiaBossBase* Boss);
-	virtual void OnBossAbilityRecovered_Implementation(AElysiaBossBase* Boss);
+	virtual FGameplayTag GetDefaultWindupGameplayCueTag() const;
+	virtual FGameplayTag GetDefaultExecuteGameplayCueTag() const;
+	virtual FGameplayTag GetDefaultRecoveryGameplayCueTag() const;
+	virtual void BuildWindupGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const;
+	virtual void BuildExecuteGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const;
+	virtual void BuildRecoveryGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Range", meta = (ClampMin = "0.0"))
 	float MinRange = 0.f;
@@ -98,29 +101,35 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Damage", meta = (ClampMin = "0.0"))
 	float DamageEffectLevel = 1.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
-	TObjectPtr<USoundBase> WindupSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
+	FGameplayTag WindupGameplayCueTagOverride;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
-	TObjectPtr<USoundBase> ExecuteSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
+	FGameplayTag ExecuteGameplayCueTagOverride;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
-	TObjectPtr<USoundBase> RecoveredSound;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
-	FVector EffectLocationOffset = FVector::ZeroVector;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|VFX")
-	FName NiagaraDurationParameterName = FName("User.Duration");
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
+	FGameplayTag RecoveryGameplayCueTagOverride;
 
 private:
 
 	void ExecuteBossSkillAfterWindup();
 	void ClearBossAbilityTimers();
 	FVector CalculateTargetDirection() const;
+	void AddBossAbilityWindupCue(AElysiaBossBase* Boss, const FVector& Origin, const FVector& Direction);
+	void RemoveBossAbilityWindupCue(AElysiaBossBase* Boss);
+	void ExecuteBossAbilityCue(FGameplayTag CueTag, const FGameplayCueParameters& Parameters) const;
+	void BuildBaseGameplayCueParameters(
+		FGameplayCueParameters& OutParameters,
+		AElysiaBossBase* Boss,
+		const FVector& Origin,
+		const FVector& Direction) const;
+	FGameplayTag GetWindupGameplayCueTag() const;
+	FGameplayTag GetExecuteGameplayCueTag() const;
+	FGameplayTag GetRecoveryGameplayCueTag() const;
 
 	FTimerHandle WindupTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
 	FVector LockedSkillDirection = FVector::ForwardVector;
 	bool bNotifiedBossAbilityActive = false;
+	bool bWindupGameplayCueActive = false;
 };

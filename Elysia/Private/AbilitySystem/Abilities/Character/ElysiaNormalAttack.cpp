@@ -19,11 +19,23 @@ void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponentFromActorInfo();
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+
 	OnAttackSpeedChanged.AddDynamic(this, &UElysiaNormalAttack::ResetTimer);
-	OnAttackSpeedChanged.Broadcast(GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
+	OnAttackSpeedChanged.Broadcast(AbilitySystemComponent->GetNumericAttribute(UElysiaAttributeSet::GetAttackSpeedAttribute()));
 
 	// 当攻速属性发生变化时，重设普攻间隔
-	GetAbilitySystemComponentFromActorInfo()->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute()).AddLambda(
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UElysiaAttributeSet::GetAttackSpeedAttribute()).AddLambda(
 		[this](const FOnAttributeChangeData& Data)
 	{
 		OnAttackSpeedChanged.Broadcast(Data.NewValue);
@@ -36,12 +48,13 @@ void UElysiaNormalAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 
 void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 {
-	if (!GetAvatarActorFromActorInfo()->HasAuthority())
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
 	{
 		return;
 	}
 
-	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(AvatarActor))
 	{
 		// 计算发射原点与朝向；所有连发都沿同一条发射线前进
 		const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
@@ -84,7 +97,13 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 
 void UElysiaNormalAttack::FindTargetAndPlayMontage()
 {
-	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo()))
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
+	{
+		return;
+	}
+
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(AvatarActor))
 	{
 		TArray<AActor*> ActorsToIgnore;
 		ActorsToIgnore.Add(ElysiaCharacter);
@@ -105,6 +124,12 @@ void UElysiaNormalAttack::FindTargetAndPlayMontage()
 
 void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
 {
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor || !AvatarActor->HasAuthority())
+	{
+		return;
+	}
+
 	Interval = 1 / FMath::Clamp(NewAttackSpeed, 0.1f, 10.f);
 	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::FindTargetAndPlayMontage, Interval, true);
 }

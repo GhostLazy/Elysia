@@ -174,7 +174,7 @@ void AElysiaTreasureChest::SpawnXPBallRewards(AActor* Opener)
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 		{
 			XPBall->SetXPValue(RewardValue);
-			XPBall->SetColorByLevel(RewardLevel);
+			XPBall->SetXPBallLevel(RewardLevel);
 			XPBall->FinishSpawning(SpawnTransform);
 		}
 	}

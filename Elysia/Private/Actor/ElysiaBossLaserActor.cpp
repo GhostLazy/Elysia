@@ -7,9 +7,6 @@
 #include "Components/SceneComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Elysia/Elysia.h"
-#include "Kismet/GameplayStatics.h"
-#include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
 
 AElysiaBossLaserActor::AElysiaBossLaserActor()
 {
@@ -65,7 +62,6 @@ void AElysiaBossLaserActor::StartLaser()
 	}
 
 	bLaserStarted = true;
-	OnLaserInitialized(Origin, Direction);
 
 	if (!HasAuthority())
 	{
@@ -80,69 +76,6 @@ void AElysiaBossLaserActor::StartLaser()
 
 	GetWorldTimerManager().SetTimer(DamageTickTimerHandle, this, &AElysiaBossLaserActor::HandleDamageTick, LaserTickInterval, true);
 	GetWorldTimerManager().SetTimer(FinishTimerHandle, this, &AElysiaBossLaserActor::FinishLaser, FMath::Max(0.01f, LaserDuration), false);
-}
-
-void AElysiaBossLaserActor::OnLaserInitialized_Implementation(FVector InOrigin, FVector InDirection)
-{
-	if (LaserEffect)
-	{
-		LaserEffectComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			LaserEffect,
-			GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::KeepRelativeOffset,
-			true);
-
-		ApplyLaserEffectParameters(LaserEffectComponent);
-
-		if (LaserEffectComponent)
-		{
-			const float LengthScale = FMath::Max(0.01f, LaserLength / 100.f);
-			const float WidthScale = FMath::Max(0.01f, LaserWidth / 100.f);
-			LaserEffectComponent->SetWorldScale3D(FVector(LengthScale, WidthScale, 1.f));
-		}
-	}
-
-	if (LaserStartSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, LaserStartSound, InOrigin);
-	}
-}
-
-void AElysiaBossLaserActor::OnLaserFinished_Implementation()
-{
-	if (LaserEffectComponent)
-	{
-		LaserEffectComponent->Deactivate();
-	}
-
-	if (LaserEndSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, LaserEndSound, Origin);
-	}
-}
-
-void AElysiaBossLaserActor::ApplyLaserEffectParameters(UNiagaraComponent* NiagaraComponent) const
-{
-	if (!NiagaraComponent)
-	{
-		return;
-	}
-
-	if (!NiagaraLengthParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraLengthParameterName, LaserLength);
-	}
-	if (!NiagaraWidthParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraWidthParameterName, LaserWidth);
-	}
-	if (!NiagaraDurationParameterName.IsNone())
-	{
-		NiagaraComponent->SetVariableFloat(NiagaraDurationParameterName, LaserDuration);
-	}
 }
 
 void AElysiaBossLaserActor::HandleDamageTick()
@@ -176,6 +109,5 @@ void AElysiaBossLaserActor::HandleDamageTick()
 void AElysiaBossLaserActor::FinishLaser()
 {
 	GetWorldTimerManager().ClearTimer(DamageTickTimerHandle);
-	OnLaserFinished();
 	Destroy();
 }
