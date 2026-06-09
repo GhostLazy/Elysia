@@ -9,12 +9,13 @@
 ---@type WBP_LevelUp_C
 local M = UnLua.Class()
 
-function M:ShouldPauseForLevelUp()
-    return UE.UGameplayStatics.GetNumPlayerStates(self) <= 1
-end
+function M:TrySetLevelUpPaused(bPaused)
+    local PlayerController = self:GetOwningPlayer()
+    if PlayerController and PlayerController.TrySetLevelUpPaused then
+        return PlayerController:TrySetLevelUpPaused(bPaused)
+    end
 
-function M:ShouldUseExclusiveLevelUpInput()
-    return self:ShouldPauseForLevelUp()
+    return UE.UGameplayStatics.SetGamePaused(self, bPaused)
 end
 
 function M:WidgetControllerSet()
@@ -33,18 +34,18 @@ function M:EnterLevelUpState()
         return
     end
 
+    self.bPausedForLevelUp = false
+    self.bUsingExclusiveLevelUpInput = false
+
+    self.bPausedForLevelUp = self:TrySetLevelUpPaused(true)
+
     local PlayerController = self:GetOwningPlayer()
-    if PlayerController then
-        if self:ShouldUseExclusiveLevelUpInput() then
-            PlayerController:SetIgnoreMoveInput(true)
-            UE.UWidgetBlueprintLibrary.SetInputMode_UIOnlyEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, true)
-        end
+    if PlayerController and self.bPausedForLevelUp then
+        PlayerController:SetIgnoreMoveInput(true)
+        UE.UWidgetBlueprintLibrary.SetInputMode_UIOnlyEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, true)
+        self.bUsingExclusiveLevelUpInput = true
     end
 
-    self.bPausedForLevelUp = self:ShouldPauseForLevelUp()
-    if self.bPausedForLevelUp then
-        UE.UGameplayStatics.SetGamePaused(self, true)
-    end
     self.bLevelUpStateActive = true
 end
 
@@ -55,17 +56,16 @@ function M:ExitLevelUpState()
 
     local PlayerController = self:GetOwningPlayer()
     if self.bPausedForLevelUp then
-        UE.UGameplayStatics.SetGamePaused(self, false)
+        self:TrySetLevelUpPaused(false)
     end
 
-    if PlayerController then
-        if self:ShouldUseExclusiveLevelUpInput() then
-            PlayerController:ResetIgnoreMoveInput()
-            UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, false, true)
-        end
+    if PlayerController and self.bUsingExclusiveLevelUpInput then
+        PlayerController:ResetIgnoreMoveInput()
+        UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(PlayerController, self, UE.EMouseLockMode.DoNotLock, false, true)
     end
 
     self.bPausedForLevelUp = false
+    self.bUsingExclusiveLevelUpInput = false
     self.bLevelUpStateActive = false
 end
 
@@ -121,19 +121,29 @@ function M:ClearChoiceCards()
 end
 
 function M:HandleChoiceCardSelected(ChoiceIndex)
+    if self.bChoiceSelectionSubmitted then
+        return
+    end
+
     if self.LevelUpWidgetController and ChoiceIndex and ChoiceIndex >= 0 then
+        self.bChoiceSelectionSubmitted = true
         self.LevelUpWidgetController:SelectEquipmentByIndex(ChoiceIndex)
+        if self.bChoiceSelectionSubmitted then
+            self:ExitLevelUpState()
+        end
     end
 end
 
 function M:HandleEquipmentChoicesChange()
     if self.LevelUpWidgetController:HasPendingEquipmentChoices() then
+        self.bChoiceSelectionSubmitted = false
         self:EnterLevelUpState()
         self:UpdateChoiceCards()
         self:SetVisibility(UE.ESlateVisibility.Visible)
     else
         self:ExitLevelUpState()
         self:ClearChoiceCards()
+        self.bChoiceSelectionSubmitted = false
         self:SetVisibility(UE.ESlateVisibility.Collapsed)
     end
 end

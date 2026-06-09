@@ -11,7 +11,7 @@ UElysiaOffensiveGameplayAbility::UElysiaOffensiveGameplayAbility()
 {
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
 void UElysiaOffensiveGameplayAbility::ApplyCooldown(

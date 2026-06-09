@@ -9,6 +9,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "ElysiaGameplayTags.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/GameStateBase.h"
 #include "Trial/ElysiaTrialInteractionComponent.h"
 
 AElysiaPlayerController::AElysiaPlayerController()
@@ -69,13 +70,35 @@ void AElysiaPlayerController::Move(const FInputActionValue& InputActionValue)
 
 void AElysiaPlayerController::ActivateSkill()
 {
-	if (HasAuthority())
+	if (TryActivateSkill())
 	{
-		TryActivateSkill();
 		return;
 	}
 
-	ServerActivateSkill();
+	if (!HasAuthority())
+	{
+		ServerActivateSkill();
+	}
+}
+
+bool AElysiaPlayerController::TryActivateSkill()
+{
+	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetCharacter()))
+	{
+		if (UAbilitySystemComponent* AbilitySystemComponent = ElysiaCharacter->GetAbilitySystemComponent())
+		{
+			FGameplayTagContainer SkillTags;
+			SkillTags.AddTag(FElysiaGameplayTags::Get().Ability_Elysia_Skill);
+			return AbilitySystemComponent->TryActivateAbilitiesByTag(SkillTags);
+		}
+	}
+
+	return false;
+}
+
+void AElysiaPlayerController::ServerActivateSkill_Implementation()
+{
+	TryActivateSkill();
 }
 
 void AElysiaPlayerController::Interact()
@@ -86,20 +109,81 @@ void AElysiaPlayerController::Interact()
 	}
 }
 
-void AElysiaPlayerController::ServerActivateSkill_Implementation()
+bool AElysiaPlayerController::TrySetLevelUpPaused(bool bPaused)
 {
-	TryActivateSkill();
+	if (bPaused && !IsSinglePlayerSessionForPause())
+	{
+		return false;
+	}
+
+	if (GetNetMode() == NM_Client)
+	{
+		if (!bPaused)
+		{
+			ClearLevelUpPauseStateLocally();
+		}
+
+		ServerSetLevelUpPaused(bPaused);
+		return true;
+	}
+
+	return ApplyLevelUpPauseState(bPaused);
 }
 
-void AElysiaPlayerController::TryActivateSkill()
+void AElysiaPlayerController::ServerSetLevelUpPaused_Implementation(bool bPaused)
 {
-	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetCharacter()))
+	if (bPaused && !IsSinglePlayerSessionForPause())
 	{
-		if (UAbilitySystemComponent* AbilitySystemComponent = ElysiaCharacter->GetAbilitySystemComponent())
+		return;
+	}
+
+	ApplyLevelUpPauseState(bPaused);
+}
+
+bool AElysiaPlayerController::IsSinglePlayerSessionForPause() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	if (const AGameStateBase* GameState = World->GetGameState())
+	{
+		return GameState->PlayerArray.Num() <= 1;
+	}
+
+	int32 PlayerControllerCount = 0;
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		++PlayerControllerCount;
+		if (PlayerControllerCount > 1)
 		{
-			FGameplayTagContainer SkillTags;
-			SkillTags.AddTag(FElysiaGameplayTags::Get().Ability_Elysia_Skill);
-			AbilitySystemComponent->TryActivateAbilitiesByTag(SkillTags);
+			return false;
 		}
+	}
+
+	return true;
+}
+
+bool AElysiaPlayerController::ApplyLevelUpPauseState(bool bPaused)
+{
+	const bool bResult = SetPause(bPaused);
+	if (AWorldSettings* WorldSettings = GetWorldSettings())
+	{
+		if (bResult || !bPaused)
+		{
+			WorldSettings->ForceNetUpdate();
+		}
+	}
+
+	return bPaused ? bResult : !IsPaused();
+}
+
+void AElysiaPlayerController::ClearLevelUpPauseStateLocally() const
+{
+	if (AWorldSettings* WorldSettings = GetWorldSettings())
+	{
+		WorldSettings->SetPauserPlayerState(nullptr);
 	}
 }

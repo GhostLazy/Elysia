@@ -24,6 +24,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
 	UElysiaTrialInteractionComponent* GetTrialInteractionComponent() const { return TrialInteractionComponent; }
+
+	UFUNCTION(BlueprintCallable, Category = "LevelUp")
+	bool TrySetLevelUpPaused(bool bPaused);
 	
 protected:
 	
@@ -54,5 +57,11 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerActivateSkill();
 
-	void TryActivateSkill();
+	UFUNCTION(Server, Reliable)
+	void ServerSetLevelUpPaused(bool bPaused);
+
+	bool TryActivateSkill();
+	bool IsSinglePlayerSessionForPause() const;
+	bool ApplyLevelUpPauseState(bool bPaused);
+	void ClearLevelUpPauseStateLocally() const;
 };
