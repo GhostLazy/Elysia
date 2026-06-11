@@ -124,6 +124,7 @@ void AElysiaTrialEventBase::TriggerTrial(AActor* TriggerActor)
 
 	DestroyTrialOfferActor();
 	HandleTrialTriggered(TriggerActor);
+	ForceNetUpdate();
 
 	if (bDestroyWhenTriggered)
 	{
@@ -179,6 +180,21 @@ bool AElysiaTrialEventBase::IsFinished() const
 		|| TrialEventState == EElysiaTrialEventState::Cancelled;
 }
 
+FVector AElysiaTrialEventBase::GetIndicatorTargetLocation() const
+{
+	return GetActorLocation();
+}
+
+bool AElysiaTrialEventBase::ShouldShowActiveTrialDirectionIndicator() const
+{
+	return false;
+}
+
+FVector AElysiaTrialEventBase::GetCompletionRewardLocation() const
+{
+	return GetActorLocation();
+}
+
 float AElysiaTrialEventBase::GetRemainingOfferTime() const
 {
 	if (OfferLifetime <= 0.f || OfferExpirationServerTime <= 0.f)
@@ -210,22 +226,6 @@ bool AElysiaTrialEventBase::CanTriggerTrial(AActor* CandidateActor) const
 	return CombatInterface ? CombatInterface->IsPlayer() && !CombatInterface->IsDead() : CandidateActor->ActorHasTag(FName("Player"));
 }
 
-void AElysiaTrialEventBase::HandleTrialTriggered(AActor* TriggerActor)
-{
-}
-
-void AElysiaTrialEventBase::HandleTrialCompleted()
-{
-}
-
-void AElysiaTrialEventBase::HandleTrialExpired()
-{
-}
-
-void AElysiaTrialEventBase::HandleTrialCancelled()
-{
-}
-
 void AElysiaTrialEventBase::HandleTriggerSphereBeginOverlap(
 	UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,
@@ -249,10 +249,19 @@ void AElysiaTrialEventBase::ExpireTrial()
 
 	ClearAllExpirationTimers();
 	TrialEventState = EElysiaTrialEventState::Expired;
+	ForceNetUpdate();
 	HandleTrialExpired();
 	DestroyTrialOfferActor();
 	BroadcastTrialFinished();
-	Destroy();
+
+	if (ExpiredStateDisplayDuration > 0.f)
+	{
+		SetLifeSpan(ExpiredStateDisplayDuration);
+	}
+	else
+	{
+		Destroy();
+	}
 }
 
 void AElysiaTrialEventBase::ClearOfferExpirationTimer()

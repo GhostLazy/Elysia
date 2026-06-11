@@ -14,6 +14,10 @@ function M:WidgetControllerSet()
     self.Health = 0
     self.MaxHealth = 0
 
+    if not Character then
+        return
+    end
+
     Character.OnHealthChanged:Add(self, self.UpdateHealthBarByHealth)
     Character.OnMaxHealthChanged:Add(self, self.UpdateHealthBarByMaxHealth)
 end

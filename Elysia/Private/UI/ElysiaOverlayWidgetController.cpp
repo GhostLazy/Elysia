@@ -12,6 +12,11 @@
 
 void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 {
+	if (!GameState && PlayerController && PlayerController->GetWorld())
+	{
+		GameState = PlayerController->GetWorld()->GetGameState();
+	}
+
 	if (AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
 		// Overlay 只关心常驻 HUD 数据：经验与等级
@@ -96,16 +101,11 @@ void UElysiaOverlayWidgetController::HandleGameProgressPercentChanged(int32 NewT
 {
 	if (const AElysiaGameState* ElysiaGameState = Cast<AElysiaGameState>(GameState))
 	{
-		if (NormalPhaseTotalDuration <= 0)
-		{
-			NormalPhaseTotalDuration = ElysiaGameState->GetNormalPhaseTotalDuration();
-		}
-		
-		if (NormalPhaseTotalDuration > 0)
-		{
-			const float Percent = FMath::Clamp(1.0 * NewTotalSecond / NormalPhaseTotalDuration, 0.f, 1.f);
-			OnGameProgressPercentChanged.Broadcast(Percent);
-		}
+		const int32 TotalDuration = ElysiaGameState->GetNormalPhaseTotalDuration();
+		const float Percent = TotalDuration > 0
+			? FMath::Clamp(static_cast<float>(NewTotalSecond) / static_cast<float>(TotalDuration), 0.f, 1.f)
+			: 0.f;
+		OnGameProgressPercentChanged.Broadcast(Percent);
 	}
 }
 

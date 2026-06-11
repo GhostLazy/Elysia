@@ -161,7 +161,7 @@ private:
 	void ApplyRecoveryChoice(float RecoveryHealth);
 	void ApplyEquipmentEffects(const FElysiaEquipmentEntry& EquipmentEntry);
 	void EnsureWeaponAbilityGranted(const FElysiaEquipmentDefinition& EquipmentDefinition);
-	void UpdateWeaponEvolutionStates();
+	void EvolveEquipment(FName EquipmentId);
 	bool CanEvolve(const FElysiaEquipmentEntry& EquipmentEntry) const;
 	FElysiaEquipmentEvolutionRequirement MakeEvolutionRequirement(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	FElysiaEquipmentChoice MakeRecoveryChoice() const;

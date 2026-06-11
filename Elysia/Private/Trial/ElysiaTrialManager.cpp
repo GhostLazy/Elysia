@@ -248,7 +248,7 @@ void AElysiaTrialManager::SpawnTrialCompletionRewards(const AElysiaTrialEventBas
 		return;
 	}
 
-	const FVector RewardOrigin = CompletedTrial->GetActorLocation();
+	const FVector RewardOrigin = CompletedTrial->GetCompletionRewardLocation();
 	SpawnTrialRewardActors(TrialRewardMagnetPickupClass.Get(), TrialRewardMagnetCount, RewardOrigin);
 	SpawnTrialRewardActors(TrialRewardHealthPickupClass.Get(), TrialRewardHealthCount, RewardOrigin);
 	SpawnTrialRewardActors(TrialRewardRunePickupClass.Get(), TrialRewardRuneCount, RewardOrigin);

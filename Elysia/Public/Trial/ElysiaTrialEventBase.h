@@ -55,6 +55,9 @@ public:
 	bool HasBeenTriggered() const { return TrialEventState == EElysiaTrialEventState::Triggered; }
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
+	bool HasExpired() const { return TrialEventState == EElysiaTrialEventState::Expired; }
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
 	bool IsFinished() const;
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
@@ -74,6 +77,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Trial")
 	AElysiaTrialInteractableActor* GetTrialOfferActor() const { return TrialOfferActor; }
+
+	UFUNCTION(BlueprintPure, Category = "Trial")
+	AActor* GetTriggeringActor() const { return TriggeringActor; }
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Indicator")
+	virtual FVector GetIndicatorTargetLocation() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Indicator")
+	virtual bool ShouldShowActiveTrialDirectionIndicator() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Rewards")
+	virtual FVector GetCompletionRewardLocation() const;
 
 	FOnTrialEventFinishedSignature OnTrialEventFinished;
 
@@ -100,6 +115,9 @@ protected:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
 	float TrialDuration = 30.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|UI", meta = (ClampMin = "0.0"))
+	float ExpiredStateDisplayDuration = 2.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Overlap Trigger")
 	bool bDisableTriggerCollisionWhenTriggered = true;
 
@@ -122,10 +140,10 @@ protected:
 	float OfferLifetime = 0.f;
 
 	virtual bool CanTriggerTrial(AActor* CandidateActor) const;
-	virtual void HandleTrialTriggered(AActor* TriggerActor);
-	virtual void HandleTrialCompleted();
-	virtual void HandleTrialExpired();
-	virtual void HandleTrialCancelled();
+	virtual void HandleTrialTriggered(AActor* TriggerActor) {}
+	virtual void HandleTrialCompleted() {}
+	virtual void HandleTrialExpired() {}
+	virtual void HandleTrialCancelled() {}
 
 private:
 

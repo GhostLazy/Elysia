@@ -69,7 +69,7 @@ protected:
 	int32 NormalPhaseTotalSeconds = 0;
 	
 	// 小兵阶段总时长
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Run")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_NormalPhaseTotalDuration, Category = "Run")
 	int32 NormalPhaseTotalDuration = 0;
 
 	// 当前Boss阶段计时
@@ -95,6 +95,9 @@ private:
 	
 	UFUNCTION()
 	void OnRep_NormalPhaseTotalSeconds() const { OnNormalPhaseTotalSecondsChanged.Broadcast(NormalPhaseTotalSeconds); }
+
+	UFUNCTION()
+	void OnRep_NormalPhaseTotalDuration() const { OnNormalPhaseTotalSecondsChanged.Broadcast(NormalPhaseTotalSeconds); }
 
 	UFUNCTION()
 	void OnRep_CurrentBoss() const { OnCurrentBossChanged.Broadcast(CurrentBoss.Get()); }

@@ -9,12 +9,24 @@
 ---@type WBP_Overlay_C
 local M = UnLua.Class()
 
+--工具函数Start
 local function SetWidgetVisible(Widget, bVisible)
     if not Widget then
         return
     end
 
     Widget:SetVisibility(bVisible and UE.ESlateVisibility.Visible or UE.ESlateVisibility.Collapsed)
+end
+
+local function ToText(String)
+    return UE.UKismetTextLibrary.Conv_StringToText(String or "")
+end
+
+local function FormatRemainingTime(Remaining)
+    local TotalSeconds = math.max(0, math.ceil(Remaining or 0))
+    local Minutes = math.floor(TotalSeconds / 60)
+    local Seconds = TotalSeconds % 60
+    return string.format("%02d:%02d", Minutes, Seconds)
 end
 
 local function GetElysiaPlayerController(Widget)
@@ -66,6 +78,7 @@ local function GetOwningPawn(Widget)
 
     return UE.UGameplayStatics.GetPlayerPawn(Widget, 0)
 end
+--工具函数End
 
 function M:WidgetControllerSet()
     self.WBP_XPBar:SetWidgetController(self.WidgetController)
@@ -74,6 +87,7 @@ function M:WidgetControllerSet()
     self:SetBossHealthBarVisible(false)
     self:SetTrialDirectionIndicatorsVisible(false)
     self:SetInteractPromptVisible(false)
+    self:SetTrialStatusVisible(false)
     
     local ElysiaOverWidgetController = UE.UElysiaOverlayWidgetController.Cast(self.WidgetController, UE.UElysiaOverlayWidgetController.StaticClass())
     if ElysiaOverWidgetController then
@@ -87,13 +101,16 @@ end
 function M:Construct()
     self:SetTrialDirectionIndicatorsVisible(false)
     self:SetInteractPromptVisible(false)
+    self:SetTrialStatusVisible(false)
 end
 
 function M:Tick(MyGeometry, InDeltaTime)
     self:UpdateTrialDirectionIndicator()
     self:UpdateInteractPrompt()
+    self:UpdateActiveTrialStatus()
 end
 
+--更新基本UI
 function M:UpdateScoreText(TotalScore)
     self.TotalScore:SetText(UE.UKismetTextLibrary.Conv_IntToText(TotalScore))
 end
@@ -127,12 +144,58 @@ function M:GetCurrentInteractableTrialOfferActor()
     return TrialInteractionComponent and TrialInteractionComponent:GetCurrentInteractableTrialOfferActor() or nil
 end
 
+function M:GetCurrentTrialEvent()
+    local TrialInteractionComponent = GetTrialInteractionComponent(self)
+    return TrialInteractionComponent and TrialInteractionComponent:GetCurrentTrialEvent() or nil
+end
+
+function M:SetTrialStatusVisible(bVisible)
+    SetWidgetVisible(self.TextBlock_TrialStatus, bVisible)
+end
+
+function M:SetTrialStatusText(StatusText)
+    local TextBlock = self.TextBlock_TrialStatus
+    if TextBlock then
+        TextBlock:SetText(ToText(StatusText))
+    end
+end
+
+function M:UpdateActiveTrialStatus()
+    local TrialEvent = self:GetCurrentTrialEvent()
+    if not TrialEvent then
+        self:SetTrialStatusVisible(false)
+        return
+    end
+
+    if TrialEvent:HasExpired() then
+        self:SetTrialStatusText("试炼失败")
+        self:SetTrialStatusVisible(true)
+        return
+    end
+
+    if TrialEvent:HasBeenTriggered() then
+        self:SetTrialStatusText(FormatRemainingTime(TrialEvent:GetRemainingTrialTime()))
+        self:SetTrialStatusVisible(true)
+        return
+    end
+
+    self:SetTrialStatusVisible(false)
+end
+
 function M:UpdateTrialDirectionIndicator()
     local TrialInteractionComponent = GetTrialInteractionComponent(self)
-    local TrialOfferActor = self:GetCurrentTrialOfferActor()
+    local IndicatorTarget = nil
+    local bShouldShowIndicator = false
+    if TrialInteractionComponent and TrialInteractionComponent:ShouldShowTrialDestinationIndicator() then
+        IndicatorTarget = self:GetCurrentTrialEvent()
+        bShouldShowIndicator = true
+    elseif TrialInteractionComponent and TrialInteractionComponent:ShouldShowTrialDirectionIndicator() then
+        IndicatorTarget = self:GetCurrentTrialOfferActor()
+        bShouldShowIndicator = true
+    end
     local Pawn = GetOwningPawn(self)
 
-	if not TrialInteractionComponent or not TrialInteractionComponent:ShouldShowTrialDirectionIndicator() then
+	if not bShouldShowIndicator then
 		if self.WBP_TrialDirectionIndicator_Left and self.WBP_TrialDirectionIndicator_Left.SetIndicatorInactive then
 			self.WBP_TrialDirectionIndicator_Left:SetIndicatorInactive()
 		end
@@ -142,7 +205,7 @@ function M:UpdateTrialDirectionIndicator()
         return
 	end
 
-	if not TrialOfferActor or not Pawn then
+	if not IndicatorTarget or not Pawn then
 		if self.WBP_TrialDirectionIndicator_Left and self.WBP_TrialDirectionIndicator_Left.SetIndicatorInactive then
 			self.WBP_TrialDirectionIndicator_Left:SetIndicatorInactive()
 		end
@@ -152,7 +215,7 @@ function M:UpdateTrialDirectionIndicator()
         return
 	end
 
-	local TargetLocation = TrialOfferActor:GetIndicatorTargetLocation()
+	local TargetLocation = IndicatorTarget:GetIndicatorTargetLocation()
 	local PawnLocation = Pawn:K2_GetActorLocation()
 	local DirectionToTarget = SubtractVector(TargetLocation, PawnLocation)
 	DirectionToTarget.Z = 0
@@ -166,7 +229,7 @@ function M:UpdateTrialDirectionIndicator()
 	if ActiveIndicator then
 		SetWidgetVisible(ActiveIndicator, true)
 		if ActiveIndicator.SetIndicatorActive then
-			ActiveIndicator:SetIndicatorActive(TrialOfferActor, PointerAngle)
+			ActiveIndicator:SetIndicatorActive(IndicatorTarget, PointerAngle)
 		end
 	end
 

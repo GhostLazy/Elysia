@@ -68,7 +68,6 @@ protected:
 
 private:
 
-	int32 NormalPhaseTotalDuration = 0;
 	TWeakObjectPtr<AElysiaEnemy> CurrentBoss;
 	FDelegateHandle BossHealthChangedHandle;
 	FDelegateHandle BossMaxHealthChangedHandle;

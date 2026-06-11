@@ -20,6 +20,22 @@ local function FormatRemainingTime(Remaining)
     return string.format("%02d:%02d", Minutes, Seconds)
 end
 
+local function GetRemainingIndicatorTime(IndicatorTarget)
+    if not IndicatorTarget then
+        return 0
+    end
+
+    if IndicatorTarget.GetRemainingOfferTime then
+        return IndicatorTarget:GetRemainingOfferTime()
+    end
+
+    if IndicatorTarget.GetRemainingTrialTime then
+        return IndicatorTarget:GetRemainingTrialTime()
+    end
+
+    return 0
+end
+
 local function GetPointerOrbit(Widget)
     if Widget.Image_pointer and Widget.Image_pointer.GetParent then
         return Widget.Image_pointer:GetParent()
@@ -38,16 +54,13 @@ local function SetWidgetVisible(Widget, bVisible)
 end
 
 function M:Construct()
-    self.TrialOfferActor = nil
+    self.IndicatorTarget = nil
     self.PointerAngle = 0
     self:SetVisibility(UE.ESlateVisibility.Collapsed)
 end
 
 function M:WidgetControllerSet()
-	self.TrialOfferActor = UE.AElysiaTrialInteractableActor.Cast(
-		self.WidgetController,
-		UE.AElysiaTrialInteractableActor.StaticClass()
-	)
+	self.IndicatorTarget = self.WidgetController
 
     self:RefreshDisplay()
 end
@@ -62,12 +75,12 @@ function M:SetPointerAngle(Angle)
 end
 
 function M:RefreshDisplay()
-	if not self.TrialOfferActor then
+	if not self.IndicatorTarget then
 		self:SetVisibility(UE.ESlateVisibility.Collapsed)
 		return
 	end
 
-	local Remaining = self.TrialOfferActor:GetRemainingOfferTime()
+	local Remaining = GetRemainingIndicatorTime(self.IndicatorTarget)
 	self:SetVisibility(UE.ESlateVisibility.SelfHitTestInvisible)
 
 	if self.TextBlock_Time then
@@ -75,16 +88,16 @@ function M:RefreshDisplay()
 	end
 end
 
-function M:SetIndicatorActive(TrialOfferActor, PointerAngle)
-    if TrialOfferActor and self.WidgetController ~= TrialOfferActor then
+function M:SetIndicatorActive(IndicatorTarget, PointerAngle)
+    if IndicatorTarget and self.WidgetController ~= IndicatorTarget then
 		if self.SetWidgetController then
-			self:SetWidgetController(TrialOfferActor)
+			self:SetWidgetController(IndicatorTarget)
 		else
-			self.WidgetController = TrialOfferActor
+			self.WidgetController = IndicatorTarget
 			self:WidgetControllerSet()
 		end
 	else
-		self.TrialOfferActor = TrialOfferActor
+		self.IndicatorTarget = IndicatorTarget
 	end
 
     self:SetPointerAngle(PointerAngle)
@@ -92,7 +105,7 @@ function M:SetIndicatorActive(TrialOfferActor, PointerAngle)
 end
 
 function M:SetIndicatorInactive()
-    self.TrialOfferActor = nil
+    self.IndicatorTarget = nil
     SetWidgetVisible(self, false)
 end
 

@@ -2,7 +2,6 @@
 
 
 #include "Trial/ElysiaReachLocationTrialEvent.h"
-
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
@@ -29,6 +28,21 @@ float AElysiaReachLocationTrialEvent::GetDistanceToDestination(AActor* Candidate
 	return FVector::Dist(CandidateActor->GetActorLocation(), DestinationLocation);
 }
 
+FVector AElysiaReachLocationTrialEvent::GetIndicatorTargetLocation() const
+{
+	return DestinationLocation;
+}
+
+bool AElysiaReachLocationTrialEvent::ShouldShowActiveTrialDirectionIndicator() const
+{
+	return HasBeenTriggered();
+}
+
+FVector AElysiaReachLocationTrialEvent::GetCompletionRewardLocation() const
+{
+	return DestinationLocation;
+}
+
 void AElysiaReachLocationTrialEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearReachCheckTimer();
@@ -38,15 +52,19 @@ void AElysiaReachLocationTrialEvent::EndPlay(const EEndPlayReason::Type EndPlayR
 
 void AElysiaReachLocationTrialEvent::HandleTrialTriggered(AActor* TriggerActor)
 {
-	Super::HandleTrialTriggered(TriggerActor);
-
 	if (!HasAuthority())
 	{
 		return;
 	}
 
-	DestinationLocation = GetActorTransform().TransformPosition(DestinationOffset);
+	const float AngleRadians = FMath::FRandRange(0.f, 2.f * PI);
+	const FVector DestinationOffset(
+		FMath::Cos(AngleRadians) * DestinationRadius,
+		FMath::Sin(AngleRadians) * DestinationRadius,
+		0.f);
+	DestinationLocation = GetActorLocation() + DestinationOffset;
 	SpawnDestinationActor();
+	ForceNetUpdate();
 
 	if (UWorld* World = GetWorld())
 	{
@@ -63,21 +81,18 @@ void AElysiaReachLocationTrialEvent::HandleTrialTriggered(AActor* TriggerActor)
 
 void AElysiaReachLocationTrialEvent::HandleTrialCompleted()
 {
-	Super::HandleTrialCompleted();
 	ClearReachCheckTimer();
 	DestroyDestinationActor();
 }
 
 void AElysiaReachLocationTrialEvent::HandleTrialExpired()
 {
-	Super::HandleTrialExpired();
 	ClearReachCheckTimer();
 	DestroyDestinationActor();
 }
 
 void AElysiaReachLocationTrialEvent::HandleTrialCancelled()
 {
-	Super::HandleTrialCancelled();
 	ClearReachCheckTimer();
 	DestroyDestinationActor();
 }

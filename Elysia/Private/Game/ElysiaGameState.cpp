@@ -36,6 +36,7 @@ void AElysiaGameState::SetCurrentBoss(AElysiaEnemy* InCurrentBoss)
 {
 	CurrentBoss = InCurrentBoss;
 	OnCurrentBossChanged.Broadcast(CurrentBoss.Get());
+	ForceNetUpdate();
 }
 
 void AElysiaGameState::SetNormalPhaseElapsedSeconds(int32 InElapsedSeconds)
@@ -52,6 +53,8 @@ void AElysiaGameState::SetNormalPhaseTotalSeconds(int32 InTotalSeconds)
 void AElysiaGameState::SetNormalPhaseTotalDuration(int32 InTotalDuration)
 {
 	NormalPhaseTotalDuration = FMath::Max(0, InTotalDuration);
+	OnNormalPhaseTotalSecondsChanged.Broadcast(NormalPhaseTotalSeconds);
+	ForceNetUpdate();
 }
 
 void AElysiaGameState::SetCurrentBossElapsedSeconds(int32 InElapsedSeconds)

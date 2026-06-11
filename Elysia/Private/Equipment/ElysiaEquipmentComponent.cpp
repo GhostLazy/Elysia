@@ -141,6 +141,10 @@ void UElysiaEquipmentComponent::SelectChoiceByIndex(int32 ChoiceIndex)
 	{
 		ApplyRecoveryChoice(SelectedChoice.RecoveryHealth);
 	}
+	else if (SelectedChoice.bWillEvolve)
+	{
+		EvolveEquipment(SelectedChoice.Equipment.EquipmentId);
+	}
 	else
 	{
 		GrantEquipment(SelectedChoice.Equipment);
@@ -191,10 +195,9 @@ void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition&
 		OwnedEntry->Level = FMath::Clamp(OwnedEntry->Level + 1, 1, FMath::Max(1, EquipmentDefinition.MaxLevel));
 	}
 
-	// 装备获得后统一走效果、能力、进化状态刷新
+	// 装备获得后统一刷新被动效果或武器Ability等级
 	ApplyEquipmentEffects(*OwnedEntry);
 	EnsureWeaponAbilityGranted(EquipmentDefinition);
-	UpdateWeaponEvolutionStates();
 	OnRep_OwnedEquipments();
 }
 
@@ -246,9 +249,9 @@ void UElysiaEquipmentComponent::RollNextChoices()
 		Choice.MaxLevel = MaxLevel;
 		Choice.bAlreadyOwned = OwnedIndex != INDEX_NONE;
 		Choice.EvolutionRequirement = MakeEvolutionRequirement(EquipmentDefinition);
-		Choice.bWillEvolve = EquipmentDefinition.EquipmentType == EElysiaEquipmentType::Weapon
-			&& Choice.NextLevel >= MaxLevel
-			&& Choice.EvolutionRequirement.bRequirementMet;
+		Choice.bWillEvolve = OwnedIndex != INDEX_NONE
+			&& CurrentLevel >= MaxLevel
+			&& CanEvolve(OwnedEquipments[OwnedIndex]);
 
 		PendingChoices.Add(Choice);
 	}
@@ -328,23 +331,21 @@ void UElysiaEquipmentComponent::EnsureWeaponAbilityGranted(const FElysiaEquipmen
 	}
 }
 
-void UElysiaEquipmentComponent::UpdateWeaponEvolutionStates()
+void UElysiaEquipmentComponent::EvolveEquipment(FName EquipmentId)
 {
-	// 该变量用于判断是否触发OwnedEquipments变化广播
-	bool bAnyEvolutionChanged = false;
-	for (FElysiaEquipmentEntry& EquipmentEntry : OwnedEquipments)
+	if (!GetOwner() || !GetOwner()->HasAuthority())
 	{
-		if (!EquipmentEntry.bEvolved && CanEvolve(EquipmentEntry))
-		{
-			EquipmentEntry.bEvolved = true;
-			bAnyEvolutionChanged = true;
-		}
+		return;
 	}
 
-	if (bAnyEvolutionChanged)
+	FElysiaEquipmentEntry* EquipmentEntry = FindOwnedEquipment(EquipmentId);
+	if (!EquipmentEntry || EquipmentEntry->bEvolved || !CanEvolve(*EquipmentEntry))
 	{
-		OnRep_OwnedEquipments();
+		return;
 	}
+
+	EquipmentEntry->bEvolved = true;
+	OnRep_OwnedEquipments();
 }
 
 bool UElysiaEquipmentComponent::CanEvolve(const FElysiaEquipmentEntry& EquipmentEntry) const
@@ -453,8 +454,18 @@ bool UElysiaEquipmentComponent::CanOfferEquipment(const FElysiaEquipmentDefiniti
 	}
 
 	const int32 OwnedIndex = FindOwnedEquipmentIndex(EquipmentDefinition.EquipmentId);
-	const int32 CurrentLevel = OwnedIndex == INDEX_NONE ? 0 : OwnedEquipments[OwnedIndex].Level;
-	return CurrentLevel < FMath::Max(1, EquipmentDefinition.MaxLevel);
+	if (OwnedIndex == INDEX_NONE)
+	{
+		return true;
+	}
+
+	const int32 CurrentLevel = OwnedEquipments[OwnedIndex].Level;
+	if (CurrentLevel < FMath::Max(1, EquipmentDefinition.MaxLevel))
+	{
+		return true;
+	}
+
+	return !OwnedEquipments[OwnedIndex].bEvolved && CanEvolve(OwnedEquipments[OwnedIndex]);
 }
 
 UAbilitySystemComponent* UElysiaEquipmentComponent::GetAbilitySystemComponent() const

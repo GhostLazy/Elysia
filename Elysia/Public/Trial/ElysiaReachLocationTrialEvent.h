@@ -29,6 +29,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Trial|Reach Location")
 	float GetDistanceToDestination(AActor* CandidateActor) const;
 
+	virtual FVector GetIndicatorTargetLocation() const override;
+	virtual bool ShouldShowActiveTrialDirectionIndicator() const override;
+	virtual FVector GetCompletionRewardLocation() const override;
+
 protected:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -40,8 +44,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Reach Location")
 	TSubclassOf<AActor> DestinationActorClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Reach Location")
-	FVector DestinationOffset = FVector(1200.f, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Reach Location", meta = (ClampMin = "0.0"))
+	float DestinationRadius = 1800.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Reach Location", meta = (ClampMin = "0.0"))
 	float ReachRadius = 220.f;

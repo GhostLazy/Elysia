@@ -117,9 +117,18 @@ FElysiaEquipmentChoiceDisplayData UElysiaLevelUpWidgetController::MakeChoiceDisp
 	DisplayData.DisplayName = bDisplaysAsEvolution && !Choice.Equipment.EvolvedDisplayName.IsEmpty()
 		? Choice.Equipment.EvolvedDisplayName
 		: Choice.Equipment.DisplayName;
-	DisplayData.Description = bDisplaysAsEvolution && !Choice.Equipment.EvolvedDescription.IsEmpty()
-		? Choice.Equipment.EvolvedDescription
-		: Choice.Equipment.Description;
+	if (bDisplaysAsEvolution && !Choice.Equipment.EvolvedDescription.IsEmpty())
+	{
+		DisplayData.Description = Choice.Equipment.EvolvedDescription;
+	}
+	else
+	{
+		const int32 DescriptionIndex = Choice.NextLevel - 1;
+		DisplayData.Description = Choice.Equipment.LevelDescriptions.IsValidIndex(DescriptionIndex)
+			&& !Choice.Equipment.LevelDescriptions[DescriptionIndex].IsEmpty()
+				? Choice.Equipment.LevelDescriptions[DescriptionIndex]
+				: Choice.Equipment.Description;
+	}
 	DisplayData.Icon = bDisplaysAsEvolution && Choice.Equipment.EvolvedIcon
 		? Choice.Equipment.EvolvedIcon
 		: Choice.Equipment.Icon;

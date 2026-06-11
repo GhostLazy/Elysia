@@ -7,6 +7,7 @@
 #include "ElysiaTrialInteractionComponent.generated.h"
 
 class AElysiaTrialInteractableActor;
+class AElysiaTrialEventBase;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class ELYSIA_API UElysiaTrialInteractionComponent : public UActorComponent
@@ -29,7 +30,13 @@ public:
 	AElysiaTrialInteractableActor* GetCurrentInteractableTrialOfferActor() const;
 
 	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
+	AElysiaTrialEventBase* GetCurrentTrialEvent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
 	bool ShouldShowTrialDirectionIndicator() const;
+
+	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
+	bool ShouldShowTrialDestinationIndicator() const;
 
 	UFUNCTION(BlueprintPure, Category = "Trial|Interaction")
 	bool ShouldShowTrialInteractPrompt() const;
@@ -48,11 +55,15 @@ private:
 	void ServerInteractWithTrialOffer(AElysiaTrialInteractableActor* TrialOffer);
 
 	void UpdateCachedTrialOfferActor();
+	void UpdateCachedTrialEventActor();
 	AElysiaTrialInteractableActor* FindBestTrialOffer() const;
+	AElysiaTrialEventBase* FindCurrentTrialEvent() const;
 	AElysiaTrialInteractableActor* FindBestTrialOfferToInteract() const;
 	bool IsValidTrialOfferActor(const AElysiaTrialInteractableActor* TrialOffer) const;
+	bool IsValidTrialEventActor(const AElysiaTrialEventBase* TrialEvent) const;
 	AActor* GetInteractingActor() const;
 
 	TWeakObjectPtr<AElysiaTrialInteractableActor> CurrentTrialOfferActor;
+	TWeakObjectPtr<AElysiaTrialEventBase> CurrentTrialEvent;
 	float TrialOfferCacheRefreshAccumulator = 0.f;
 };

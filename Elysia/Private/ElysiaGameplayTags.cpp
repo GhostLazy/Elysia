@@ -39,6 +39,12 @@ void FElysiaGameplayTags::InitNativeGameplayTags()
 	// 动画事件
 	GameplayTags.Event_Montage_Elysia_NormalAttack = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Event.Montage.Elysia.NormalAttack"));
 
+	// SetByCaller 数据
+	GameplayTags.Data_DamageMultiplier = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Data.DamageMultiplier"));
+
+	// GameplayCue：角色武器表现
+	GameplayTags.GameplayCue_Weapon_SwordSlash = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Weapon.SwordSlash"));
+
 	// GameplayCue：Boss技能表现
 	GameplayTags.GameplayCue_Boss_Charge_Windup = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Charge.Windup"));
 	GameplayTags.GameplayCue_Boss_Charge_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Charge.Execute"));

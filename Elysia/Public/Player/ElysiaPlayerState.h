@@ -61,8 +61,8 @@ private:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_Level)
 	int32 Level = 1;
 	
-	UPROPERTY(VisibleAnywhere, Replicated)
-	int32 MaxLevel = 15;
+	UPROPERTY(EditDefaultsOnly, Replicated)
+	int32 MaxLevel = 20;
 	
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_XP)
 	int32 XP = 0;

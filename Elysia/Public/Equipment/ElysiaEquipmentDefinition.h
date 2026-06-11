@@ -33,6 +33,10 @@ struct FElysiaEquipmentDefinition
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment", meta = (MultiLine = true))
 	FText Description;
 
+	// 按目标等级填写升级卡描述；数组下标0对应1级。
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment")
+	TArray<FText> LevelDescriptions;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment")
 	TObjectPtr<UTexture2D> Icon = nullptr;
 

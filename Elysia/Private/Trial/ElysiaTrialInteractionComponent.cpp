@@ -26,6 +26,7 @@ void UElysiaTrialInteractionComponent::TickComponent(
 		|| !IsValidTrialOfferActor(CurrentTrialOfferActor.Get()))
 	{
 		UpdateCachedTrialOfferActor();
+		UpdateCachedTrialEventActor();
 		TrialOfferCacheRefreshAccumulator = 0.f;
 	}
 }
@@ -48,9 +49,21 @@ AElysiaTrialInteractableActor* UElysiaTrialInteractionComponent::GetCurrentInter
 	return TrialOffer;
 }
 
+AElysiaTrialEventBase* UElysiaTrialInteractionComponent::GetCurrentTrialEvent() const
+{
+	AElysiaTrialEventBase* TrialEvent = CurrentTrialEvent.Get();
+	return IsValidTrialEventActor(TrialEvent) ? TrialEvent : nullptr;
+}
+
 bool UElysiaTrialInteractionComponent::ShouldShowTrialDirectionIndicator() const
 {
 	return GetCurrentTrialOfferActor() && !GetCurrentInteractableTrialOfferActor();
+}
+
+bool UElysiaTrialInteractionComponent::ShouldShowTrialDestinationIndicator() const
+{
+	const AElysiaTrialEventBase* TrialEvent = GetCurrentTrialEvent();
+	return TrialEvent && TrialEvent->ShouldShowActiveTrialDirectionIndicator();
 }
 
 bool UElysiaTrialInteractionComponent::ShouldShowTrialInteractPrompt() const
@@ -89,6 +102,11 @@ void UElysiaTrialInteractionComponent::UpdateCachedTrialOfferActor()
 	CurrentTrialOfferActor = FindBestTrialOffer();
 }
 
+void UElysiaTrialInteractionComponent::UpdateCachedTrialEventActor()
+{
+	CurrentTrialEvent = FindCurrentTrialEvent();
+}
+
 AElysiaTrialInteractableActor* UElysiaTrialInteractionComponent::FindBestTrialOffer() const
 {
 	AActor* InteractingActor = GetInteractingActor();
@@ -120,6 +138,26 @@ AElysiaTrialInteractableActor* UElysiaTrialInteractionComponent::FindBestTrialOf
 	return BestTrialOffer;
 }
 
+AElysiaTrialEventBase* UElysiaTrialInteractionComponent::FindCurrentTrialEvent() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	for (TActorIterator<AElysiaTrialEventBase> It(World); It; ++It)
+	{
+		AElysiaTrialEventBase* TrialEvent = *It;
+		if (IsValidTrialEventActor(TrialEvent))
+		{
+			return TrialEvent;
+		}
+	}
+
+	return nullptr;
+}
+
 AElysiaTrialInteractableActor* UElysiaTrialInteractionComponent::FindBestTrialOfferToInteract() const
 {
 	return GetCurrentInteractableTrialOfferActor();
@@ -134,6 +172,18 @@ bool UElysiaTrialInteractionComponent::IsValidTrialOfferActor(const AElysiaTrial
 
 	const AElysiaTrialEventBase* TrialEvent = TrialOffer->GetTrialEvent();
 	return !TrialEvent || TrialEvent->IsWaitingToBeTriggered();
+}
+
+bool UElysiaTrialInteractionComponent::IsValidTrialEventActor(const AElysiaTrialEventBase* TrialEvent) const
+{
+	if (!IsValid(TrialEvent) || TrialEvent->IsWaitingToBeTriggered() || TrialEvent->IsFinished() && !TrialEvent->HasExpired())
+	{
+		return false;
+	}
+
+	const AActor* InteractingActor = GetInteractingActor();
+	const AActor* TriggeringActor = TrialEvent->GetTriggeringActor();
+	return !TriggeringActor || TriggeringActor == InteractingActor;
 }
 
 AActor* UElysiaTrialInteractionComponent::GetInteractingActor() const
