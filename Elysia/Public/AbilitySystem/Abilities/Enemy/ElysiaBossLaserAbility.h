@@ -16,20 +16,14 @@ class ELYSIA_API UElysiaBossLaserAbility : public UElysiaBossGameplayAbility
 protected:
 
 	virtual void ExecuteBossSkill() override;
-	virtual float GetPostExecuteRecoveryTime() const override;
+	virtual bool ShouldAutoEndAfterExecute() const override { return false; }
 	virtual void EndAbility(
 		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility,
 		bool bWasCancelled) override;
-	virtual FGameplayTag GetDefaultWindupGameplayCueTag() const override;
 	virtual FGameplayTag GetDefaultExecuteGameplayCueTag() const override;
-	virtual void BuildWindupGameplayCueParameters(
-		FGameplayCueParameters& OutParameters,
-		AElysiaBossBase* Boss,
-		const FVector& Origin,
-		const FVector& Direction) const override;
 	virtual void BuildExecuteGameplayCueParameters(
 		FGameplayCueParameters& OutParameters,
 		AElysiaBossBase* Boss,
@@ -53,6 +47,10 @@ protected:
 
 private:
 
+	void FinishLaser();
+
 	UPROPERTY()
 	TObjectPtr<AElysiaBossLaserActor> ActiveLaserActor;
+
+	FTimerHandle LaserDurationTimerHandle;
 };

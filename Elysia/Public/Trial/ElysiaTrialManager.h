@@ -57,6 +57,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
 	float UntriggeredTrialLifetime = 50.f;
 
+	// 所有试炼触发后的统一持续时间。
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
+	float TrialDuration = 20.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bCancelTriggeredTrialOnPhaseEnd = true;
 

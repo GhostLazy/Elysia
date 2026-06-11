@@ -11,10 +11,10 @@ void AElysiaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(AElysiaGameState, CurrentRunPhase);
 	DOREPLIFETIME(AElysiaGameState, CurrentBossRound);
-	DOREPLIFETIME(AElysiaGameState, CurrentBoss);
+	DOREPLIFETIME_CONDITION_NOTIFY(AElysiaGameState, CurrentBoss, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME(AElysiaGameState, NormalPhaseElapsedSeconds);
-	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalSeconds);
-	DOREPLIFETIME(AElysiaGameState, NormalPhaseTotalDuration);
+	DOREPLIFETIME_CONDITION_NOTIFY(AElysiaGameState, NormalPhaseTotalSeconds, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AElysiaGameState, NormalPhaseTotalDuration, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME(AElysiaGameState, CurrentBossElapsedSeconds);
 	DOREPLIFETIME(AElysiaGameState, NormalScore);
 	DOREPLIFETIME(AElysiaGameState, BossScore);

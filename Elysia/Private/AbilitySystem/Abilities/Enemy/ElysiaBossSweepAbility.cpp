@@ -64,25 +64,9 @@ void UElysiaBossSweepAbility::ExecuteBossSkill()
 	}
 }
 
-FGameplayTag UElysiaBossSweepAbility::GetDefaultWindupGameplayCueTag() const
-{
-	return FElysiaGameplayTags::Get().GameplayCue_Boss_Sweep_Windup;
-}
-
 FGameplayTag UElysiaBossSweepAbility::GetDefaultExecuteGameplayCueTag() const
 {
 	return FElysiaGameplayTags::Get().GameplayCue_Boss_Sweep_Execute;
-}
-
-void UElysiaBossSweepAbility::BuildWindupGameplayCueParameters(
-	FGameplayCueParameters& OutParameters,
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction) const
-{
-	Super::BuildWindupGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = SweepRadius;
-	OutParameters.NormalizedMagnitude = SweepAngle;
 }
 
 void UElysiaBossSweepAbility::BuildExecuteGameplayCueParameters(

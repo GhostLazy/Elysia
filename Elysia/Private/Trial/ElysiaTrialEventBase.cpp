@@ -74,6 +74,7 @@ void AElysiaTrialEventBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AElysiaTrialEventBase::InitializeTrial(
 	AActor* InSpawnPoint,
 	float InUntriggeredLifetime,
+	float InTrialDuration,
 	TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass)
 {
 	if (!HasAuthority())
@@ -85,6 +86,7 @@ void AElysiaTrialEventBase::InitializeTrial(
 	TrialEventState = EElysiaTrialEventState::WaitingToBeTriggered;
 	bTrialFinishedBroadcasted = false;
 	OfferLifetime = InUntriggeredLifetime;
+	TrialDuration = FMath::Max(0.f, InTrialDuration);
 	TrialStartedServerTime = 0.f;
 	TrialExpirationServerTime = 0.f;
 

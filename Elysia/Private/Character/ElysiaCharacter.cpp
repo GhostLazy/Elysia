@@ -61,6 +61,7 @@ AElysiaCharacter::AElysiaCharacter()
 	// 启用每帧更新
 	PrimaryActorTick.bCanEverTick = true;
 	Tags.Add(FName("Player"));
+	Tags.Add(FName("Damageable"));
 }
 
 void AElysiaCharacter::PossessedBy(AController* NewController)

@@ -4,12 +4,16 @@
 #include "Actor/ElysiaSmartBulletOrb.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
 AElysiaSmartBulletOrb::AElysiaSmartBulletOrb()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	bReplicates = true;
-	SetNetUpdateFrequency(100.f);
+	SetReplicatingMovement(false);
+	SetNetUpdateFrequency(10.f);
+	SetMinNetUpdateFrequency(2.f);
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>("SceneRoot");
 	SetRootComponent(SceneRoot);
@@ -19,27 +23,55 @@ AElysiaSmartBulletOrb::AElysiaSmartBulletOrb()
 	VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void AElysiaSmartBulletOrb::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AElysiaSmartBulletOrb, FollowTarget);
+	DOREPLIFETIME(AElysiaSmartBulletOrb, OrbIndex);
+	DOREPLIFETIME(AElysiaSmartBulletOrb, OrbCount);
+	DOREPLIFETIME(AElysiaSmartBulletOrb, OrbitRadius);
+	DOREPLIFETIME(AElysiaSmartBulletOrb, HeightOffset);
+	DOREPLIFETIME(AElysiaSmartBulletOrb, FollowInterpSpeed);
+}
+
 void AElysiaSmartBulletOrb::BeginPlay()
 {
 	Super::BeginPlay();
-	SetReplicateMovement(true);
+	RefreshFollowTickPrerequisite();
+
+	// 客户端收到 FollowTarget 前先隐藏，避免在初始复制位置短暂闪现。
+	if (!HasAuthority() && !IsValid(FollowTarget))
+	{
+		SetActorHiddenInGame(true);
+	}
+}
+
+void AElysiaSmartBulletOrb::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (TickPrerequisiteTarget.IsValid())
+	{
+		RemoveTickPrerequisiteActor(TickPrerequisiteTarget.Get());
+		TickPrerequisiteTarget.Reset();
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AElysiaSmartBulletOrb::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!HasAuthority())
-	{
-		return;
-	}
-
 	if (!IsValid(FollowTarget))
 	{
-		Destroy();
+		if (HasAuthority())
+		{
+			Destroy();
+		}
 		return;
 	}
 
+	// 每端都依据本端已经过网络平滑的角色位置计算 Orb，避免复制位移与角色平滑不同步。
 	const FVector DesiredLocation = GetDesiredLocation();
 	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), DesiredLocation, DeltaSeconds, FollowInterpSpeed);
 	SetActorLocation(NewLocation);
@@ -48,6 +80,8 @@ void AElysiaSmartBulletOrb::Tick(float DeltaSeconds)
 void AElysiaSmartBulletOrb::InitializeOrb(AActor* InFollowTarget, int32 InOrbIndex, int32 InOrbCount, float InOrbitRadius, float InHeightOffset, float InFollowInterpSpeed)
 {
 	FollowTarget = InFollowTarget;
+	RefreshFollowTickPrerequisite();
+	SetActorHiddenInGame(!IsValid(FollowTarget));
 	UpdateOrbLayout(InOrbIndex, InOrbCount, InOrbitRadius, InHeightOffset, InFollowInterpSpeed);
 }
 
@@ -58,6 +92,11 @@ void AElysiaSmartBulletOrb::UpdateOrbLayout(int32 InOrbIndex, int32 InOrbCount, 
 	OrbitRadius = FMath::Max(0.f, InOrbitRadius);
 	HeightOffset = InHeightOffset;
 	FollowInterpSpeed = FMath::Max(0.f, InFollowInterpSpeed);
+
+	if (HasAuthority())
+	{
+		ForceNetUpdate();
+	}
 }
 
 FVector AElysiaSmartBulletOrb::GetMuzzleLocation() const
@@ -83,4 +122,34 @@ FVector AElysiaSmartBulletOrb::GetDesiredLocation() const
 	const FVector OrbitOffset = RightVector * SideSign * OrbitRadius + FVector::UpVector * HeightOffset;
 
 	return FollowTarget->GetActorLocation() + OrbitOffset;
+}
+
+void AElysiaSmartBulletOrb::RefreshFollowTickPrerequisite()
+{
+	if (TickPrerequisiteTarget.Get() == FollowTarget)
+	{
+		return;
+	}
+
+	if (TickPrerequisiteTarget.IsValid())
+	{
+		RemoveTickPrerequisiteActor(TickPrerequisiteTarget.Get());
+	}
+
+	TickPrerequisiteTarget = FollowTarget;
+	if (TickPrerequisiteTarget.IsValid())
+	{
+		AddTickPrerequisiteActor(TickPrerequisiteTarget.Get());
+	}
+}
+
+void AElysiaSmartBulletOrb::OnRep_FollowTarget()
+{
+	RefreshFollowTickPrerequisite();
+	SetActorHiddenInGame(!IsValid(FollowTarget));
+}
+
+void AElysiaSmartBulletOrb::OnRep_OrbLayout()
+{
+	// 布局变化由 Tick 平滑过渡，不在复制回调中瞬移。
 }

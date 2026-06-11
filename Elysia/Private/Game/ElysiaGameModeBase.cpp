@@ -133,7 +133,7 @@ void AElysiaGameModeBase::EnterBossBattle(int32 BossRound)
 		SpawnManager->StopEliteSpawn();
 	}
 
-	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
+	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), BossRound) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
 		if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())
@@ -162,7 +162,7 @@ void AElysiaGameModeBase::EnterFinalBossBattle(int32 BossRound)
 		SpawnManager->StopNormalSpawn();
 	}
 
-	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), 3) : nullptr)
+	if (AElysiaEnemy* SpawnedBoss = SpawnManager ? SpawnManager->SpawnSpecialEnemy(GetBossClassForRound(BossRound), BossRound) : nullptr)
 	{
 		CurrentBoss = SpawnedBoss;
 		if (AElysiaGameState* ElysiaGameState = GetElysiaGameState())

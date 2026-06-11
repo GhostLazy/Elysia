@@ -95,6 +95,8 @@ function M:WidgetControllerSet()
         ElysiaOverWidgetController.OnGameProgressPercentChanged:Add(self, self.UpdateProgressPercent)
         ElysiaOverWidgetController.OnBossHealthPercentChanged:Add(self, self.UpdateBossHealthPercent)
         ElysiaOverWidgetController.OnBossHealthVisibilityChanged:Add(self, self.SetBossHealthBarVisible)
+        -- 所有 UI 委托完成绑定后，再请求当前客户端快照，避免错过先到达的 OnRep。
+        ElysiaOverWidgetController:BroadcastInitialValues()
     end
 end
 

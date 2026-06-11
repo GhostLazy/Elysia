@@ -6,12 +6,14 @@
 #include "Actor/ElysiaBossLaserActor.h"
 #include "Character/ElysiaBossBase.h"
 #include "ElysiaGameplayTags.h"
+#include "TimerManager.h"
 
 void UElysiaBossLaserAbility::ExecuteBossSkill()
 {
 	AElysiaBossBase* Boss = GetBossAvatar();
 	if (!Boss || !Boss->HasAuthority() || !LaserActorClass)
 	{
+		FinishBossAbility();
 		return;
 	}
 
@@ -38,11 +40,19 @@ void UElysiaBossLaserAbility::ExecuteBossSkill()
 		LaserActor->FinishSpawning(SpawnTransform);
 		ActiveLaserActor = LaserActor;
 	}
-}
 
-float UElysiaBossLaserAbility::GetPostExecuteRecoveryTime() const
-{
-	return FMath::Max(0.f, LaserDuration) + RecoveryTime;
+	if (!IsValid(ActiveLaserActor) || LaserDuration <= 0.f)
+	{
+		FinishBossAbility();
+		return;
+	}
+
+	Boss->GetWorld()->GetTimerManager().SetTimer(
+		LaserDurationTimerHandle,
+		this,
+		&UElysiaBossLaserAbility::FinishLaser,
+		LaserDuration,
+		false);
 }
 
 void UElysiaBossLaserAbility::EndAbility(
@@ -52,6 +62,11 @@ void UElysiaBossLaserAbility::EndAbility(
 	bool bReplicateEndAbility,
 	bool bWasCancelled)
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LaserDurationTimerHandle);
+	}
+
 	if (IsValid(ActiveLaserActor))
 	{
 		ActiveLaserActor->Destroy();
@@ -61,25 +76,9 @@ void UElysiaBossLaserAbility::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-FGameplayTag UElysiaBossLaserAbility::GetDefaultWindupGameplayCueTag() const
-{
-	return FElysiaGameplayTags::Get().GameplayCue_Boss_Laser_Windup;
-}
-
 FGameplayTag UElysiaBossLaserAbility::GetDefaultExecuteGameplayCueTag() const
 {
 	return FElysiaGameplayTags::Get().GameplayCue_Boss_Laser_Execute;
-}
-
-void UElysiaBossLaserAbility::BuildWindupGameplayCueParameters(
-	FGameplayCueParameters& OutParameters,
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction) const
-{
-	Super::BuildWindupGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = LaserLength;
-	OutParameters.NormalizedMagnitude = LaserWidth;
 }
 
 void UElysiaBossLaserAbility::BuildExecuteGameplayCueParameters(
@@ -91,4 +90,9 @@ void UElysiaBossLaserAbility::BuildExecuteGameplayCueParameters(
 	Super::BuildExecuteGameplayCueParameters(OutParameters, Boss, Origin, Direction);
 	OutParameters.RawMagnitude = LaserLength;
 	OutParameters.NormalizedMagnitude = LaserWidth;
+}
+
+void UElysiaBossLaserAbility::FinishLaser()
+{
+	FinishBossAbility();
 }

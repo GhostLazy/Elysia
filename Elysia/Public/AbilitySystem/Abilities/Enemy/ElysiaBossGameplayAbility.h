@@ -9,7 +9,6 @@
 #include "ElysiaBossGameplayAbility.generated.h"
 
 class AElysiaBossBase;
-class UAnimMontage;
 class UGameplayEffect;
 
 /**
@@ -50,31 +49,16 @@ protected:
 		bool bWasCancelled) override;
 
 	virtual void ExecuteBossSkill();
-	virtual bool ShouldAutoRecoverAfterExecute() const { return true; }
-	virtual float GetPostExecuteRecoveryTime() const { return RecoveryTime; }
-
-	void BeginBossAbilityRecovery(float Delay);
-	void FinishBossAbilityRecovery();
+	virtual bool ShouldAutoEndAfterExecute() const { return true; }
+	void FinishBossAbility();
 
 	AElysiaBossBase* GetBossAvatar(const FGameplayAbilityActorInfo* ActorInfo = nullptr) const;
 	AActor* GetCombatTarget() const;
 	FVector GetLockedSkillDirection() const { return LockedSkillDirection; }
 	bool ApplyDamageToTarget(AActor* TargetActor) const;
 
-	virtual FGameplayTag GetDefaultWindupGameplayCueTag() const;
 	virtual FGameplayTag GetDefaultExecuteGameplayCueTag() const;
-	virtual FGameplayTag GetDefaultRecoveryGameplayCueTag() const;
-	virtual void BuildWindupGameplayCueParameters(
-		FGameplayCueParameters& OutParameters,
-		AElysiaBossBase* Boss,
-		const FVector& Origin,
-		const FVector& Direction) const;
 	virtual void BuildExecuteGameplayCueParameters(
-		FGameplayCueParameters& OutParameters,
-		AElysiaBossBase* Boss,
-		const FVector& Origin,
-		const FVector& Direction) const;
-	virtual void BuildRecoveryGameplayCueParameters(
 		FGameplayCueParameters& OutParameters,
 		AElysiaBossBase* Boss,
 		const FVector& Origin,
@@ -86,15 +70,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Range", meta = (ClampMin = "0.0"))
 	float CastRange = 600.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Timing", meta = (ClampMin = "0.0"))
-	float WindupTime = 0.4f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Timing", meta = (ClampMin = "0.0"))
-	float RecoveryTime = 0.6f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Timing")
-	TObjectPtr<UAnimMontage> CastMontage;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|Damage")
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
 
@@ -102,34 +77,19 @@ protected:
 	float DamageEffectLevel = 1.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
-	FGameplayTag WindupGameplayCueTagOverride;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
 	FGameplayTag ExecuteGameplayCueTagOverride;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss Ability|GameplayCue")
-	FGameplayTag RecoveryGameplayCueTagOverride;
 
 private:
 
-	void ExecuteBossSkillAfterWindup();
-	void ClearBossAbilityTimers();
 	FVector CalculateTargetDirection() const;
-	void AddBossAbilityWindupCue(AElysiaBossBase* Boss, const FVector& Origin, const FVector& Direction);
-	void RemoveBossAbilityWindupCue(AElysiaBossBase* Boss);
 	void ExecuteBossAbilityCue(FGameplayTag CueTag, const FGameplayCueParameters& Parameters) const;
 	void BuildBaseGameplayCueParameters(
 		FGameplayCueParameters& OutParameters,
 		AElysiaBossBase* Boss,
 		const FVector& Origin,
 		const FVector& Direction) const;
-	FGameplayTag GetWindupGameplayCueTag() const;
 	FGameplayTag GetExecuteGameplayCueTag() const;
-	FGameplayTag GetRecoveryGameplayCueTag() const;
 
-	FTimerHandle WindupTimerHandle;
-	FTimerHandle RecoveryTimerHandle;
 	FVector LockedSkillDirection = FVector::ForwardVector;
 	bool bNotifiedBossAbilityActive = false;
-	bool bWindupGameplayCueActive = false;
 };

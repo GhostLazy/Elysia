@@ -6,7 +6,6 @@
 #include "AbilitySystemComponent.h"
 #include "Character/ElysiaBossBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "TimerManager.h"
 
 UElysiaBossGameplayAbility::UElysiaBossGameplayAbility()
 {
@@ -80,28 +79,15 @@ void UElysiaBossGameplayAbility::ActivateAbility(
 		MovementComponent->StopMovementImmediately();
 	}
 
-	if (CastMontage)
-	{
-		Boss->PlayAnimMontage(CastMontage);
-	}
-
 	const FVector Origin = Boss->GetActorLocation();
-	AddBossAbilityWindupCue(Boss, Origin, LockedSkillDirection);
+	FGameplayCueParameters ExecuteCueParameters;
+	BuildExecuteGameplayCueParameters(ExecuteCueParameters, Boss, Origin, LockedSkillDirection);
+	ExecuteBossAbilityCue(GetExecuteGameplayCueTag(), ExecuteCueParameters);
 
-	if (WindupTime <= 0.f)
+	ExecuteBossSkill();
+	if (ShouldAutoEndAfterExecute() && IsActive())
 	{
-		ExecuteBossSkillAfterWindup();
-		return;
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			WindupTimerHandle,
-			this,
-			&UElysiaBossGameplayAbility::ExecuteBossSkillAfterWindup,
-			FMath::Max(0.f, WindupTime),
-			false);
+		FinishBossAbility();
 	}
 }
 
@@ -112,19 +98,9 @@ void UElysiaBossGameplayAbility::EndAbility(
 	bool bReplicateEndAbility,
 	bool bWasCancelled)
 {
-	ClearBossAbilityTimers();
-
 	AElysiaBossBase* Boss = GetBossAvatar(ActorInfo);
 	if (Boss)
 	{
-		RemoveBossAbilityWindupCue(Boss);
-
-		FGameplayCueParameters RecoveryCueParameters;
-		const FVector RecoveryOrigin = Boss->GetActorLocation();
-		const FVector RecoveryDirection = Boss->GetActorForwardVector().GetSafeNormal2D();
-		BuildRecoveryGameplayCueParameters(RecoveryCueParameters, Boss, RecoveryOrigin, RecoveryDirection);
-		ExecuteBossAbilityCue(GetRecoveryGameplayCueTag(), RecoveryCueParameters);
-
 		if (bNotifiedBossAbilityActive)
 		{
 			Boss->NotifyBossAbilityEnded(this);
@@ -139,28 +115,12 @@ void UElysiaBossGameplayAbility::ExecuteBossSkill()
 {
 }
 
-void UElysiaBossGameplayAbility::BeginBossAbilityRecovery(float Delay)
+void UElysiaBossGameplayAbility::FinishBossAbility()
 {
-	if (Delay <= 0.f)
+	if (IsActive())
 	{
-		FinishBossAbilityRecovery();
-		return;
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			RecoveryTimerHandle,
-			this,
-			&UElysiaBossGameplayAbility::FinishBossAbilityRecovery,
-			Delay,
-			false);
-	}
-}
-
-void UElysiaBossGameplayAbility::FinishBossAbilityRecovery()
-{
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
 AElysiaBossBase* UElysiaBossGameplayAbility::GetBossAvatar(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -181,30 +141,9 @@ bool UElysiaBossGameplayAbility::ApplyDamageToTarget(AActor* TargetActor) const
 	return Boss ? Boss->ApplyBossDamageToTarget(TargetActor, DamageEffectClass, DamageEffectLevel) : false;
 }
 
-FGameplayTag UElysiaBossGameplayAbility::GetDefaultWindupGameplayCueTag() const
-{
-	return FGameplayTag();
-}
-
 FGameplayTag UElysiaBossGameplayAbility::GetDefaultExecuteGameplayCueTag() const
 {
 	return FGameplayTag();
-}
-
-FGameplayTag UElysiaBossGameplayAbility::GetDefaultRecoveryGameplayCueTag() const
-{
-	return FGameplayTag();
-}
-
-void UElysiaBossGameplayAbility::BuildWindupGameplayCueParameters(
-	FGameplayCueParameters& OutParameters,
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction) const
-{
-	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = WindupTime;
-	OutParameters.NormalizedMagnitude = RecoveryTime;
 }
 
 void UElysiaBossGameplayAbility::BuildExecuteGameplayCueParameters(
@@ -214,52 +153,6 @@ void UElysiaBossGameplayAbility::BuildExecuteGameplayCueParameters(
 	const FVector& Direction) const
 {
 	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = WindupTime;
-	OutParameters.NormalizedMagnitude = RecoveryTime;
-}
-
-void UElysiaBossGameplayAbility::BuildRecoveryGameplayCueParameters(
-	FGameplayCueParameters& OutParameters,
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction) const
-{
-	BuildBaseGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = RecoveryTime;
-	OutParameters.NormalizedMagnitude = WindupTime;
-}
-
-void UElysiaBossGameplayAbility::ExecuteBossSkillAfterWindup()
-{
-	AElysiaBossBase* Boss = GetBossAvatar();
-	if (!Boss)
-	{
-		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
-		return;
-	}
-
-	const FVector Origin = Boss->GetActorLocation();
-	RemoveBossAbilityWindupCue(Boss);
-
-	FGameplayCueParameters ExecuteCueParameters;
-	BuildExecuteGameplayCueParameters(ExecuteCueParameters, Boss, Origin, LockedSkillDirection);
-	ExecuteBossAbilityCue(GetExecuteGameplayCueTag(), ExecuteCueParameters);
-
-	ExecuteBossSkill();
-
-	if (ShouldAutoRecoverAfterExecute())
-	{
-		BeginBossAbilityRecovery(GetPostExecuteRecoveryTime());
-	}
-}
-
-void UElysiaBossGameplayAbility::ClearBossAbilityTimers()
-{
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(WindupTimerHandle);
-		World->GetTimerManager().ClearTimer(RecoveryTimerHandle);
-	}
 }
 
 FVector UElysiaBossGameplayAbility::CalculateTargetDirection() const
@@ -276,47 +169,6 @@ FVector UElysiaBossGameplayAbility::CalculateTargetDirection() const
 	}
 
 	return Boss ? Boss->GetActorForwardVector().GetSafeNormal2D() : FVector::ForwardVector;
-}
-
-void UElysiaBossGameplayAbility::AddBossAbilityWindupCue(
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction)
-{
-	const FGameplayTag CueTag = GetWindupGameplayCueTag();
-	if (!Boss || !CueTag.IsValid())
-	{
-		return;
-	}
-
-	if (UAbilitySystemComponent* AbilitySystemComponent = Boss->GetAbilitySystemComponent())
-	{
-		FGameplayCueParameters CueParameters;
-		BuildWindupGameplayCueParameters(CueParameters, Boss, Origin, Direction);
-		AbilitySystemComponent->AddGameplayCue(CueTag, CueParameters);
-		bWindupGameplayCueActive = true;
-	}
-}
-
-void UElysiaBossGameplayAbility::RemoveBossAbilityWindupCue(AElysiaBossBase* Boss)
-{
-	if (!bWindupGameplayCueActive || !Boss)
-	{
-		return;
-	}
-
-	const FGameplayTag CueTag = GetWindupGameplayCueTag();
-	if (!CueTag.IsValid())
-	{
-		bWindupGameplayCueActive = false;
-		return;
-	}
-
-	if (UAbilitySystemComponent* AbilitySystemComponent = Boss->GetAbilitySystemComponent())
-	{
-		AbilitySystemComponent->RemoveGameplayCue(CueTag);
-	}
-	bWindupGameplayCueActive = false;
 }
 
 void UElysiaBossGameplayAbility::ExecuteBossAbilityCue(
@@ -351,23 +203,9 @@ void UElysiaBossGameplayAbility::BuildBaseGameplayCueParameters(
 	OutParameters.GameplayEffectLevel = FMath::Max(1, FMath::RoundToInt(DamageEffectLevel));
 }
 
-FGameplayTag UElysiaBossGameplayAbility::GetWindupGameplayCueTag() const
-{
-	return WindupGameplayCueTagOverride.IsValid()
-		? WindupGameplayCueTagOverride
-		: GetDefaultWindupGameplayCueTag();
-}
-
 FGameplayTag UElysiaBossGameplayAbility::GetExecuteGameplayCueTag() const
 {
 	return ExecuteGameplayCueTagOverride.IsValid()
 		? ExecuteGameplayCueTagOverride
 		: GetDefaultExecuteGameplayCueTag();
-}
-
-FGameplayTag UElysiaBossGameplayAbility::GetRecoveryGameplayCueTag() const
-{
-	return RecoveryGameplayCueTagOverride.IsValid()
-		? RecoveryGameplayCueTagOverride
-		: GetDefaultRecoveryGameplayCueTag();
 }

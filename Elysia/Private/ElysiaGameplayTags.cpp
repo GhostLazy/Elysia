@@ -43,12 +43,13 @@ void FElysiaGameplayTags::InitNativeGameplayTags()
 	GameplayTags.GameplayCue_Weapon_SwordSlash = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Weapon.SwordSlash"));
 
 	// GameplayCue：Boss技能表现
-	GameplayTags.GameplayCue_Boss_Charge_Windup = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Charge.Windup"));
 	GameplayTags.GameplayCue_Boss_Charge_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Charge.Execute"));
-	GameplayTags.GameplayCue_Boss_Sweep_Windup = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Sweep.Windup"));
 	GameplayTags.GameplayCue_Boss_Sweep_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Sweep.Execute"));
-	GameplayTags.GameplayCue_Boss_Laser_Windup = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Laser.Windup"));
 	GameplayTags.GameplayCue_Boss_Laser_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Laser.Execute"));
+	GameplayTags.GameplayCue_Boss_Arrow_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Arrow.Execute"));
+	GameplayTags.GameplayCue_Boss_Fireball_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Fireball.Execute"));
+	GameplayTags.GameplayCue_Boss_Fireball_Impact = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Fireball.Impact"));
+	GameplayTags.GameplayCue_Boss_WindField_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.WindField.Execute"));
 }
 
 

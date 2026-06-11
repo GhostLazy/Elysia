@@ -183,16 +183,21 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> E
 			continue;
 		}
 
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-		AElysiaEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AElysiaEnemy>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+		const FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
+		AElysiaEnemy* SpawnedEnemy = GetWorld()->SpawnActorDeferred<AElysiaEnemy>(
+			EnemyClass,
+			SpawnTransform,
+			this,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
 		if (!SpawnedEnemy)
 		{
 			continue;
 		}
 
+		// Boss 等级必须在 BeginPlay 初始化属性和授予技能前写入。
 		SpawnedEnemy->SetLevel(EnemyLevel);
+		SpawnedEnemy->FinishSpawning(SpawnTransform);
 
 		if (HasGroundBelowBoss(SpawnedEnemy->GetActorLocation(), CapsuleHalfHeight, SpawnedEnemy))
 		{

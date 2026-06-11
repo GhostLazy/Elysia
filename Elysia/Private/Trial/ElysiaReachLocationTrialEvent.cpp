@@ -5,11 +5,6 @@
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
-AElysiaReachLocationTrialEvent::AElysiaReachLocationTrialEvent()
-{
-	TrialDuration = 30.f;
-}
-
 void AElysiaReachLocationTrialEvent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

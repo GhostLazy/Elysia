@@ -51,12 +51,13 @@ public:
 	FGameplayTag GameplayCue_Weapon_SwordSlash;
 
 	// GameplayCue：Boss技能表现
-	FGameplayTag GameplayCue_Boss_Charge_Windup;
 	FGameplayTag GameplayCue_Boss_Charge_Execute;
-	FGameplayTag GameplayCue_Boss_Sweep_Windup;
 	FGameplayTag GameplayCue_Boss_Sweep_Execute;
-	FGameplayTag GameplayCue_Boss_Laser_Windup;
 	FGameplayTag GameplayCue_Boss_Laser_Execute;
+	FGameplayTag GameplayCue_Boss_Arrow_Execute;
+	FGameplayTag GameplayCue_Boss_Fireball_Execute;
+	FGameplayTag GameplayCue_Boss_Fireball_Impact;
+	FGameplayTag GameplayCue_Boss_WindField_Execute;
 	
 private:
 	

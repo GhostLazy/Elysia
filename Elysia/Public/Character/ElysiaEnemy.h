@@ -34,6 +34,8 @@ public:
 	EElysiaEnemyType GetEnemyType() const { return EnemyType; }
 	int32 GetEnemyLevel() const { return Level; }
 	void SetLevel(int32 InLevel) { Level = FMath::Max(1, InLevel); }
+	void SetDeathRewardsEnabled(bool bEnabled) { bDeathRewardsEnabled = bEnabled; }
+	bool AreDeathRewardsEnabled() const { return bDeathRewardsEnabled; }
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool HasOverlappingPlayers() const { return CurrentOverlappingPlayers.Num() > 0; }
@@ -75,6 +77,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	TSubclassOf<AElysiaMagnetPickup> MagnetPickupClass;
+
+	// 试炼等特殊来源可关闭怪物自身的死亡掉落，但不影响死亡通知与销毁流程。
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
+	bool bDeathRewardsEnabled = true;
 
 private:
 

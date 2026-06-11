@@ -13,8 +13,6 @@ class ELYSIA_API AElysiaReachLocationTrialEvent : public AElysiaTrialEventBase
 
 public:
 
-	AElysiaReachLocationTrialEvent();
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintPure, Category = "Trial|Reach Location")

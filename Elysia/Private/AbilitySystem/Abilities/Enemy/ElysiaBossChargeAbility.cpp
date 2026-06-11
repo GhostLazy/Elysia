@@ -34,25 +34,9 @@ void UElysiaBossChargeAbility::ExecuteBossSkill()
 	}
 }
 
-FGameplayTag UElysiaBossChargeAbility::GetDefaultWindupGameplayCueTag() const
-{
-	return FElysiaGameplayTags::Get().GameplayCue_Boss_Charge_Windup;
-}
-
 FGameplayTag UElysiaBossChargeAbility::GetDefaultExecuteGameplayCueTag() const
 {
 	return FElysiaGameplayTags::Get().GameplayCue_Boss_Charge_Execute;
-}
-
-void UElysiaBossChargeAbility::BuildWindupGameplayCueParameters(
-	FGameplayCueParameters& OutParameters,
-	AElysiaBossBase* Boss,
-	const FVector& Origin,
-	const FVector& Direction) const
-{
-	Super::BuildWindupGameplayCueParameters(OutParameters, Boss, Origin, Direction);
-	OutParameters.RawMagnitude = ChargeMaxDistance;
-	OutParameters.NormalizedMagnitude = ChargeSpeed;
 }
 
 void UElysiaBossChargeAbility::BuildExecuteGameplayCueParameters(
@@ -156,5 +140,5 @@ void UElysiaBossChargeAbility::StopCharge(bool bInterrupted)
 
 	bChargeActive = false;
 	ChargeHitTargets.Empty();
-	BeginBossAbilityRecovery(RecoveryTime);
+	FinishBossAbility();
 }

@@ -105,7 +105,10 @@ void AElysiaEnemy::Die()
 	{
 		const FFindFloorResult FloorResult = GetCharacterMovement()->CurrentFloor;
 		const FVector DropLocation = FloorResult.HitResult.ImpactPoint + FVector(0, 0, 10);
-		SpawnDeathRewards(DropLocation);
+		if (bDeathRewardsEnabled)
+		{
+			SpawnDeathRewards(DropLocation);
+		}
 		Destroy();
 	}
 }
@@ -121,6 +124,7 @@ void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
 	if (XPBallDropCount > 0 && XPBallClass)
 	{
 		const int32 XPValue = XPRewards.GetValueAtLevel(Level);
+		const int32 XPBallLevel = EnemyType == EElysiaEnemyType::Boss ? 3 : Level;
 		for (int32 Index = 0; Index < XPBallDropCount; ++Index)
 		{
 			const float Angle = XPBallDropCount > 1
@@ -138,7 +142,7 @@ void AElysiaEnemy::SpawnDeathRewards(const FVector& DropLocation)
 			if (AElysiaXPBall* XPBall = GetWorld()->SpawnActorDeferred<AElysiaXPBall>(XPBallClass, SpawnTransform))
 			{
 				XPBall->SetXPValue(XPValue);
-				XPBall->SetXPBallLevel(Level);
+				XPBall->SetXPBallLevel(XPBallLevel);
 				XPBall->FinishSpawning(SpawnTransform);
 			}
 		}

@@ -9,14 +9,10 @@
 #include "ElysiaGameplayTags.h"
 #include "Game/ElysiaGameState.h"
 #include "Player/ElysiaPlayerState.h"
+#include "TimerManager.h"
 
 void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 {
-	if (!GameState && PlayerController && PlayerController->GetWorld())
-	{
-		GameState = PlayerController->GetWorld()->GetGameState();
-	}
-
 	if (AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
 	{
 		// Overlay 只关心常驻 HUD 数据：经验与等级
@@ -24,23 +20,67 @@ void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 		ElysiaPS->OnLevelChanged.RemoveAll(this);
 		ElysiaPS->OnXPChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleXPChanged);
 		ElysiaPS->OnLevelChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleLevelChanged);
+	}
 
+	ResolveAndBindGameState();
+}
+
+void UElysiaOverlayWidgetController::BeginDestroy()
+{
+	if (PlayerController && PlayerController->GetWorld())
+	{
+		PlayerController->GetWorld()->GetTimerManager().ClearTimer(ReplicatedStateRefreshTimerHandle);
+	}
+
+	UnbindFromCurrentBoss();
+	UnbindFromGameState();
+	Super::BeginDestroy();
+}
+
+void UElysiaOverlayWidgetController::BroadcastInitialValues()
+{
+	if (const AElysiaPlayerState* ElysiaPS = Cast<AElysiaPlayerState>(PlayerState))
+	{
 		HandleXPChanged(ElysiaPS->GetXP());
 		HandleLevelChanged(ElysiaPS->GetPlayerLevel(), false);
 	}
-	
-	if (AElysiaGameState* ElysiaGameState = Cast<AElysiaGameState>(GameState))
+
+	RefreshReplicatedState();
+
+	if (PlayerController && PlayerController->GetWorld()
+		&& !PlayerController->GetWorld()->GetTimerManager().IsTimerActive(ReplicatedStateRefreshTimerHandle))
 	{
-		ElysiaGameState->OnTotalScoreChanged.RemoveAll(this);
-		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.RemoveAll(this);
-		ElysiaGameState->OnCurrentBossChanged.RemoveAll(this);
-		ElysiaGameState->OnTotalScoreChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleTotalScoreChanged);
-		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleGameProgressPercentChanged);
-		ElysiaGameState->OnCurrentBossChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleCurrentBossChanged);
-		
-		HandleTotalScoreChanged(ElysiaGameState->GetTotalScore());
-		HandleGameProgressPercentChanged(ElysiaGameState->GetNormalPhaseTotalSeconds());
-		HandleCurrentBossChanged(ElysiaGameState->GetCurrentBoss());
+		PlayerController->GetWorld()->GetTimerManager().SetTimer(
+			ReplicatedStateRefreshTimerHandle,
+			this,
+			&UElysiaOverlayWidgetController::RefreshReplicatedState,
+			0.1f,
+			true);
+	}
+}
+
+void UElysiaOverlayWidgetController::RefreshReplicatedState()
+{
+	ResolveAndBindGameState();
+
+	const AElysiaGameState* ElysiaGameState = BoundGameState.Get();
+	if (!ElysiaGameState)
+	{
+		return;
+	}
+
+	HandleTotalScoreChanged(ElysiaGameState->GetTotalScore());
+	HandleGameProgressPercentChanged(ElysiaGameState->GetNormalPhaseTotalSeconds());
+
+	AElysiaEnemy* ReplicatedBoss = ElysiaGameState->GetCurrentBoss();
+	if (CurrentBoss.Get() != ReplicatedBoss)
+	{
+		HandleCurrentBossChanged(ReplicatedBoss);
+	}
+	else
+	{
+		// 即使初始属性复制早于 UI 委托绑定，也能从当前 AttributeSet 补回正确血量。
+		BroadcastBossHealthPercent();
 	}
 }
 
@@ -141,6 +181,52 @@ void UElysiaOverlayWidgetController::BroadcastBossHealthPercent() const
 		? FMath::Clamp(BossAttributeSet->GetHealth() / MaxHealth, 0.f, 1.f)
 		: 0.f;
 	OnBossHealthPercentChanged.Broadcast(HealthPercent);
+}
+
+void UElysiaOverlayWidgetController::ResolveAndBindGameState()
+{
+	AElysiaGameState* CurrentGameState = nullptr;
+	if (PlayerController && PlayerController->GetWorld())
+	{
+		CurrentGameState = PlayerController->GetWorld()->GetGameState<AElysiaGameState>();
+	}
+
+	if (BoundGameState.Get() != CurrentGameState)
+	{
+		UnbindFromGameState();
+		BindToGameState(CurrentGameState);
+	}
+}
+
+void UElysiaOverlayWidgetController::BindToGameState(AElysiaGameState* NewGameState)
+{
+	if (!NewGameState)
+	{
+		GameState = nullptr;
+		return;
+	}
+
+	GameState = NewGameState;
+	BoundGameState = NewGameState;
+	NewGameState->OnTotalScoreChanged.RemoveAll(this);
+	NewGameState->OnNormalPhaseTotalSecondsChanged.RemoveAll(this);
+	NewGameState->OnCurrentBossChanged.RemoveAll(this);
+	NewGameState->OnTotalScoreChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleTotalScoreChanged);
+	NewGameState->OnNormalPhaseTotalSecondsChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleGameProgressPercentChanged);
+	NewGameState->OnCurrentBossChanged.AddUObject(this, &UElysiaOverlayWidgetController::HandleCurrentBossChanged);
+}
+
+void UElysiaOverlayWidgetController::UnbindFromGameState()
+{
+	if (AElysiaGameState* ElysiaGameState = BoundGameState.Get())
+	{
+		ElysiaGameState->OnTotalScoreChanged.RemoveAll(this);
+		ElysiaGameState->OnNormalPhaseTotalSecondsChanged.RemoveAll(this);
+		ElysiaGameState->OnCurrentBossChanged.RemoveAll(this);
+	}
+
+	BoundGameState.Reset();
+	GameState = nullptr;
 }
 
 void UElysiaOverlayWidgetController::BindToCurrentBoss(AElysiaEnemy* NewBoss)

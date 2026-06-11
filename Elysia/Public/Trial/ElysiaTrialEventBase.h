@@ -34,7 +34,11 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void InitializeTrial(AActor* InSpawnPoint, float InUntriggeredLifetime, TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass);
+	void InitializeTrial(
+		AActor* InSpawnPoint,
+		float InUntriggeredLifetime,
+		float InTrialDuration,
+		TSubclassOf<AElysiaTrialInteractableActor> InTrialOfferActorClass);
 
 	UFUNCTION(BlueprintCallable, Category = "Trial")
 	void TriggerTrial(AActor* TriggerActor);
@@ -112,8 +116,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial")
 	bool bDestroyWhenTriggered = false;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Trial", meta = (ClampMin = "0.0"))
-	float TrialDuration = 30.f;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Trial")
+	float TrialDuration = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|UI", meta = (ClampMin = "0.0"))
 	float ExpiredStateDisplayDuration = 2.f;

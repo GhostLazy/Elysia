@@ -145,7 +145,11 @@ void AElysiaTrialManager::HandleTrialSpawnTimer()
 	{
 		OfferActorClass = AElysiaTrialInteractableActor::StaticClass();
 	}
-	TrialEvent->InitializeTrial(TrialSpawnPoint, UntriggeredTrialLifetime, OfferActorClass);
+	TrialEvent->InitializeTrial(
+		TrialSpawnPoint,
+		UntriggeredTrialLifetime,
+		TrialDuration,
+		OfferActorClass);
 }
 
 void AElysiaTrialManager::HandleActiveTrialFinished(AElysiaTrialEventBase* FinishedTrial)
