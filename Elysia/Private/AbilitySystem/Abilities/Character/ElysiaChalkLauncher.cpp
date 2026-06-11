@@ -52,7 +52,7 @@ void UElysiaChalkLauncher::SpawnProjectile()
 		const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
 		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
 			DamageEffectClass,
-			static_cast<float>(GetWeaponAbilityLevel()),
+			static_cast<float>(GetWeaponEffectLevel()),
 			EffectContext);
 		Projectile->FinishSpawning(SpawnTransform);
 	}

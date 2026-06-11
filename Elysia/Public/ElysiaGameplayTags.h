@@ -47,9 +47,6 @@ public:
 	// 动画事件
 	FGameplayTag Event_Montage_Elysia_NormalAttack;
 
-	// SetByCaller 数据
-	FGameplayTag Data_DamageMultiplier;
-
 	// GameplayCue：角色武器表现
 	FGameplayTag GameplayCue_Weapon_SwordSlash;
 

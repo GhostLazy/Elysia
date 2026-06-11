@@ -42,6 +42,12 @@ int32 UElysiaDamageGameplayAbility::GetWeaponAbilityLevel() const
 	return 1;
 }
 
+int32 UElysiaDamageGameplayAbility::GetWeaponEffectLevel() const
+{
+	const int32 WeaponLevel = FMath::Max(1, GetWeaponAbilityLevel());
+	return IsWeaponEvolved() ? WeaponLevel + 1 : WeaponLevel;
+}
+
 bool UElysiaDamageGameplayAbility::IsWeaponEvolved() const
 {
 	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())

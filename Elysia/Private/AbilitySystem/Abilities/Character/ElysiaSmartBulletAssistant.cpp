@@ -208,7 +208,7 @@ void UElysiaSmartBulletAssistant::FireBulletFromOrb(AElysiaSmartBulletOrb* Orb, 
 	const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
 	Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
 		DamageEffectClassToUse,
-		static_cast<float>(GetWeaponAbilityLevel()),
+		static_cast<float>(GetWeaponEffectLevel()),
 		EffectContext);
 	Projectile->FinishSpawning(SpawnTransform);
 }

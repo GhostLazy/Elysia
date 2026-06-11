@@ -16,7 +16,7 @@ AElysiaCharacterBase::AElysiaCharacterBase()
 	HealthBar->SetupAttachment(RootComponent);
 }
 
-void AElysiaCharacterBase::InitDefaultAttributes()
+void AElysiaCharacterBase::InitDefaultAttributes(const float Level)
 {
 	if (!AbilitySystemComponent || !AttributeSet)
 	{
@@ -26,7 +26,7 @@ void AElysiaCharacterBase::InitDefaultAttributes()
 	if (HasAuthority())
 	{
 		// 默认属性GE只允许服务端施加，避免客户端本地改权威状态
-		ApplyEffectToSelf(DefaultPrimaryAttributeClass, 1.f);
+		ApplyEffectToSelf(DefaultPrimaryAttributeClass, Level);
 		ApplyEffectToSelf(DefaultVitalAttributeClass, 1.f);
 	}
 

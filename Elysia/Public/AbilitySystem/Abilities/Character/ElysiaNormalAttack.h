@@ -32,8 +32,8 @@ protected:
 	UFUNCTION()
 	void ResetTimer(float NewAttackSpeed);
 	
-	// 执行一次齐射；进化前为单箭，进化后为并排双箭
-	void FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley, bool bShouldPenetrate) const;
+	// 执行一次齐射；每次执行时重新读取角色当前枪口位置和目标位置
+	void FireProjectileVolley(int32 ArrowsPerVolley, bool bShouldPenetrate) const;
 	
 	UPROPERTY()
 	FOnAttributeChangeSignature OnAttackSpeedChanged;

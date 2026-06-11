@@ -62,7 +62,7 @@ void AElysiaEnemy::BeginPlay()
 	Super::BeginPlay();
 	
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-	InitDefaultAttributes();
+	InitDefaultAttributes(Level);
 
 	const bool bShowOverheadHealthBar = EnemyType == EElysiaEnemyType::Elite;
 	if (HealthBar)

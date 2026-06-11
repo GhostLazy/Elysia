@@ -129,7 +129,7 @@ void AElysiaCharacter::InitAbilityActorInfo()
 		return;
 	}
 	
-	InitDefaultAttributes();
+	InitDefaultAttributes(1.f);
 	InitHealthBar();
 	
 	// 客户端初始化血条

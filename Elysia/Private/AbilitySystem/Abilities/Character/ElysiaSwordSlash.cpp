@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ElysiaAbilitySystemLibrary.h"
 #include "AbilitySystem/ElysiaAttributeSet.h"
+#include "DrawDebugHelpers.h"
 #include "ElysiaGameplayTags.h"
 #include "Engine/World.h"
 
@@ -56,16 +57,12 @@ void UElysiaSwordSlash::ExecuteSlashVolley()
 
 	const FGameplayEffectSpecHandle DamageSpecHandle = SourceAbilitySystemComponent->MakeOutgoingSpec(
 		DamageEffectClass,
-		static_cast<float>(GetWeaponAbilityLevel()),
+		static_cast<float>(GetWeaponEffectLevel()),
 		EffectContext);
 	if (!DamageSpecHandle.IsValid())
 	{
 		return;
 	}
-
-	DamageSpecHandle.Data->SetSetByCallerMagnitude(
-		FElysiaGameplayTags::Get().Data_DamageMultiplier,
-		GetCurrentDamageMultiplier());
 
 	const FVector AvatarLocation = AvatarActor->GetActorLocation();
 	const float DamageRadius = GetCurrentDamageRadius();
@@ -74,6 +71,20 @@ void UElysiaSwordSlash::ExecuteSlashVolley()
 	for (int32 SlashIndex = 0; SlashIndex < GetCurrentSlashCount(); ++SlashIndex)
 	{
 		const FVector SlashCenter = MakeRandomSlashCenter(AvatarLocation);
+		if (bDrawDebugDamageSphere)
+		{
+			DrawDebugSphere(
+				GetWorld(),
+				SlashCenter,
+				DamageRadius,
+				32,
+				IsWeaponEvolved() ? FColor::Yellow : FColor::Cyan,
+				false,
+				DebugSphereDuration,
+				0,
+				DebugSphereThickness);
+		}
+
 		ExecuteSlashGameplayCue(SlashCenter, DamageRadius);
 
 		TArray<AActor*> ActorsToIgnore;
@@ -209,9 +220,7 @@ void UElysiaSwordSlash::ExecuteSlashGameplayCue(const FVector& Center, float Dam
 	CueParameters.Location = Center;
 	CueParameters.Normal = FVector::UpVector;
 	CueParameters.RawMagnitude = DamageRadius;
-	CueParameters.GameplayEffectLevel = IsWeaponEvolved()
-		? static_cast<float>(GetWeaponAbilityLevel() + 1)
-		: static_cast<float>(GetWeaponAbilityLevel());
+	CueParameters.GameplayEffectLevel = static_cast<float>(GetWeaponEffectLevel());
 	CueParameters.Instigator = GetAvatarActorFromActorInfo();
 	CueParameters.EffectCauser = GetAvatarActorFromActorInfo();
 	CueParameters.SourceObject = const_cast<UElysiaSwordSlash*>(this);
@@ -227,22 +236,6 @@ int32 UElysiaSwordSlash::GetCurrentSlashCount() const
 
 	const int32 LevelIndex = FMath::Clamp(GetWeaponAbilityLevel() - 1, 0, SlashCountByLevel.Num() - 1);
 	return FMath::Max(1, SlashCountByLevel[LevelIndex]);
-}
-
-float UElysiaSwordSlash::GetCurrentDamageMultiplier() const
-{
-	if (IsWeaponEvolved())
-	{
-		return FMath::Max(0.f, EvolvedDamageMultiplier);
-	}
-
-	if (DamageMultiplierByLevel.IsEmpty())
-	{
-		return 0.f;
-	}
-
-	const int32 LevelIndex = FMath::Clamp(GetWeaponAbilityLevel() - 1, 0, DamageMultiplierByLevel.Num() - 1);
-	return FMath::Max(0.f, DamageMultiplierByLevel[LevelIndex]);
 }
 
 float UElysiaSwordSlash::GetCurrentDamageRadius() const

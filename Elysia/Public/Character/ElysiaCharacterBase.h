@@ -45,7 +45,7 @@ public:
 protected:
 	
 	// 初始化默认属性，并同步基础表现（如移速）
-	void InitDefaultAttributes();
+	void InitDefaultAttributes(const float Level);
 		
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UWidgetComponent> HealthBar;

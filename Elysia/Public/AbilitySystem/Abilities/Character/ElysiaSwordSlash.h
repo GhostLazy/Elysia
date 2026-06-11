@@ -36,13 +36,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Level")
 	TArray<int32> SlashCountByLevel = { 1, 2, 2, 4 };
 
-	// 1/2/3/4级对应的攻击力倍率。
-	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Level")
-	TArray<float> DamageMultiplierByLevel = { 1.5f, 1.5f, 2.4f, 2.4f };
-
-	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Evolution", meta = (ClampMin = "0.0"))
-	float EvolvedDamageMultiplier = 3.3f;
-
 	// 随机圆心到角色位置的固定距离。
 	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Area", meta = (ClampMin = "0.0"))
 	float SpawnRingRadius = 500.f;
@@ -61,6 +54,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Evolution", meta = (ClampMin = "0.0"))
 	float EvolvedRangeMultiplier = 1.66f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Debug")
+	bool bDrawDebugDamageSphere = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Debug", meta = (ClampMin = "0.0"))
+	float DebugSphereDuration = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Debug", meta = (ClampMin = "0.0"))
+	float DebugSphereThickness = 2.f;
+
 	// 攻速为1时的基础释放间隔。
 	UPROPERTY(EditDefaultsOnly, Category = "Sword Slash|Timing", meta = (ClampMin = "0.01"))
 	float BaseAttackInterval = 3.f;
@@ -78,7 +80,6 @@ private:
 	FVector MakeRandomSlashCenter(const FVector& AvatarLocation) const;
 	void ExecuteSlashGameplayCue(const FVector& Center, float DamageRadius) const;
 	int32 GetCurrentSlashCount() const;
-	float GetCurrentDamageMultiplier() const;
 	float GetCurrentDamageRadius() const;
 
 	FTimerHandle SlashTimerHandle;

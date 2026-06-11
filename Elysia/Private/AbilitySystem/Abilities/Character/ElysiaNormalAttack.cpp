@@ -56,12 +56,6 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 
 	if (AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(AvatarActor))
 	{
-		// 计算发射原点与朝向；所有连发都沿同一条发射线前进
-		const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
-		const FVector AimDirection = TargetActor
-			? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal()
-			: ElysiaCharacter->GetActorForwardVector();
-		const FRotator BaseRotation = AimDirection.Rotation();
 		const int32 BaseProjectileCount = FMath::Max(1, GetBaseProjectileCount(ProjectileCountByLevel));
 		const bool bEvolved = IsWeaponEvolved();
 		const int32 ArrowsPerVolley = bEvolved ? 2 : 1;
@@ -81,13 +75,13 @@ void UElysiaNormalAttack::SpawnProjectile(FGameplayEventData Payload)
 			const float Delay = BurstShotInterval * static_cast<float>(VolleyIndex);
 			if (Delay <= 0.f)
 			{
-				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced);
+				FireProjectileVolley(ArrowsPerVolley, bEnhanced);
 				continue;
 			}
 
-			FTimerDelegate VolleyDelegate = FTimerDelegate::CreateWeakLambda(this, [this, SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced]()
+			FTimerDelegate VolleyDelegate = FTimerDelegate::CreateWeakLambda(this, [this, ArrowsPerVolley, bEnhanced]()
 			{
-				FireProjectileVolley(SpawnLocation, BaseRotation, ArrowsPerVolley, bEnhanced);
+				FireProjectileVolley(ArrowsPerVolley, bEnhanced);
 			});
 			FTimerHandle VolleyTimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(VolleyTimerHandle, VolleyDelegate, Delay, false);
@@ -134,8 +128,20 @@ void UElysiaNormalAttack::ResetTimer(float NewAttackSpeed)
 	GetWorld()->GetTimerManager().SetTimer(SpawnProjectileTimer, this, &UElysiaNormalAttack::FindTargetAndPlayMontage, Interval, true);
 }
 
-void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, const FRotator& SpawnRotation, int32 ArrowsPerVolley, bool bShouldPenetrate) const
+void UElysiaNormalAttack::FireProjectileVolley(int32 ArrowsPerVolley, bool bShouldPenetrate) const
 {
+	AElysiaCharacter* ElysiaCharacter = Cast<AElysiaCharacter>(GetAvatarActorFromActorInfo());
+	if (!ElysiaCharacter || !ElysiaCharacter->HasAuthority() || !ElysiaCharacter->GetWeapon())
+	{
+		return;
+	}
+
+	// 延迟连发真正执行时才读取当前枪口和目标位置，避免角色移动后仍从旧位置生成子弹。
+	const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
+	const FVector AimDirection = IsValid(TargetActor)
+		? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal()
+		: ElysiaCharacter->GetActorForwardVector();
+	const FRotator SpawnRotation = AimDirection.Rotation();
 	const FVector RightVector = SpawnRotation.RotateVector(FVector::RightVector);
 	const float PairHalfWidth = ArrowsPerVolley > 1 ? EvolvedPairSpacing * 0.5f : 0.f;
 	const TSubclassOf<AElysiaProjectile> ProjectileClassToSpawn = bShouldPenetrate && EnhancedProjectileClass
@@ -174,7 +180,7 @@ void UElysiaNormalAttack::FireProjectileVolley(const FVector& SpawnLocation, con
 		const FGameplayEffectContextHandle EffectContext = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
 		Projectile->EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
 			DamageEffectClass,
-			static_cast<float>(GetWeaponAbilityLevel()),
+			static_cast<float>(GetWeaponEffectLevel()),
 			EffectContext);
 		Projectile->FinishSpawning(SpawnTransform);
 	}

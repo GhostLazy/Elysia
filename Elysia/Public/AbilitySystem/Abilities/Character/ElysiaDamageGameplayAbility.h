@@ -30,6 +30,8 @@ protected:
 	
 	// 查询武器等级
 	int32 GetWeaponAbilityLevel() const;
+	// 武器伤害GE等级：普通状态等于武器等级，进化状态使用满级后的下一等级
+	int32 GetWeaponEffectLevel() const;
 	// 查询武器是否已进化
 	bool IsWeaponEvolved() const;
 	// 从 PlayerState 上获取装备组件
