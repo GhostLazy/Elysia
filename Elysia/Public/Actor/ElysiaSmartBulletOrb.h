@@ -37,6 +37,7 @@ protected:
 
 private:
 
+	FTransform GetFollowTransform() const;
 	FVector GetDesiredLocation() const;
 	void RefreshFollowTickPrerequisite();
 

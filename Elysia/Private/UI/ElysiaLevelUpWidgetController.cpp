@@ -129,9 +129,11 @@ FElysiaEquipmentChoiceDisplayData UElysiaLevelUpWidgetController::MakeChoiceDisp
 				? Choice.Equipment.LevelDescriptions[DescriptionIndex]
 				: Choice.Equipment.Description;
 	}
-	DisplayData.Icon = bDisplaysAsEvolution && Choice.Equipment.EvolvedIcon
-		? Choice.Equipment.EvolvedIcon
-		: Choice.Equipment.Icon;
+	if (DisplayData.Description.IsEmpty())
+	{
+		DisplayData.Description = NSLOCTEXT("ElysiaEquipment", "DefaultDescription", "请输入文本");
+	}
+	DisplayData.Icon = Choice.Equipment.Icon;
 	DisplayData.MaxLevel = FMath::Max(1, Choice.MaxLevel);
 	DisplayData.CurrentLevel = FMath::Clamp(Choice.CurrentLevel, 0, DisplayData.MaxLevel);
 	DisplayData.NextLevel = FMath::Clamp(Choice.NextLevel, 1, DisplayData.MaxLevel);

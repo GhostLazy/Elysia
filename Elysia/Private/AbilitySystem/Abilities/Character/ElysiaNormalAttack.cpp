@@ -110,9 +110,24 @@ void UElysiaNormalAttack::FindTargetAndPlayMontage()
 		TargetActor = UElysiaAbilitySystemLibrary::GetClosestActor(OverlapActors, ActorLocation);
 
 		ElysiaCharacter->RotateToTarget(TargetActor);
+		if (!AttackMontage)
+		{
+			return;
+		}
+
 		UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this, NAME_None, AttackMontage);
 		MontageTask->ReadyForActivation();
+
+		// 自主代理会忽略服务器复制的 Montage 状态，因此单独向所属客户端补发纯表现播放。
+		// 服务端 Montage 继续负责触发 GameplayEvent，客户端没有事件监听，不会重复生成子弹。
+		if (!ElysiaCharacter->IsLocallyControlled())
+		{
+			if (UElysiaAbilitySystemComponent* ElysiaASC = Cast<UElysiaAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo()))
+			{
+				ElysiaASC->ClientPlayAbilityMontage(AttackMontage, 1.f);
+			}
+		}
 	}
 }
 

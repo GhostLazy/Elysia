@@ -45,6 +45,22 @@ local function GetCardStyleIndex(CardStyle)
     return 1
 end
 
+local function SetChoiceIcon(Image, Texture)
+    if not Image then
+        return
+    end
+
+    if Texture then
+        Image:SetBrushResourceObject(Texture)
+        Image:SetOpacity(1.0)
+        Image:SetVisibility(UE.ESlateVisibility.SelfHitTestInvisible)
+        return
+    end
+
+    Image:SetBrushResourceObject(nil)
+    Image:SetVisibility(UE.ESlateVisibility.Hidden)
+end
+
 function M:Construct()
     self.ChoiceIndex = -1
     self.bIsHovered = false
@@ -83,6 +99,10 @@ function M:ClearChoiceData()
     self.DisplayData = nil
     self.ChoiceIndex = -1
     self.bIsHovered = false
+    SetChoiceIcon(self.Image_Icon, nil)
+    if self.TextBlock_EvolveComp then
+        self.TextBlock_EvolveComp:SetText(StringToText(""))
+    end
     self:HideInteractionLayers()
     self:SetVisibility(UE.ESlateVisibility.Collapsed)
 end
@@ -104,9 +124,7 @@ function M:ApplyCardStyle(CardStyle)
 end
 
 function M:ApplyChoiceContent(DisplayData)
-    if self.Image_Icon and DisplayData.Icon then
-        self.Image_Icon:SetBrushFromTexture(DisplayData.Icon)
-    end
+    SetChoiceIcon(self.Image_Icon, DisplayData.Icon)
 
     if self.TextBlock_NameLevel then
         self.TextBlock_NameLevel:SetText(StringToText(self:BuildNameLevelText(DisplayData)))
@@ -114,6 +132,11 @@ function M:ApplyChoiceContent(DisplayData)
 
     if self.TextBlock_Description then
         self.TextBlock_Description:SetText(StringToText(self:BuildDescriptionText(DisplayData)))
+    end
+
+    if self.TextBlock_EvolveComp then
+        local EvolveCompText = self:BuildEvolveCompText(DisplayData)
+        self.TextBlock_EvolveComp:SetText(StringToText(EvolveCompText))
     end
 end
 
@@ -135,21 +158,19 @@ function M:BuildDescriptionText(DisplayData)
         return string.format("恢复%.0f点生命值", DisplayData.RecoveryHealth)
     end
 
-    local Lines = {}
-    local Description = TextToString(DisplayData.Description)
-    if Description ~= "" then
-        table.insert(Lines, Description)
-    end
+    return TextToString(DisplayData.Description)
+end
 
+function M:BuildEvolveCompText(DisplayData)
     if DisplayData.bHasEvolutionRequirement then
         local RequiredName = TextToString(DisplayData.EvolutionRequiredDisplayName)
         if RequiredName ~= "" then
             local RequirementState = DisplayData.bEvolutionRequirementMet and "已拥有" or "未拥有"
-            table.insert(Lines, string.format("进化组合：%s（%s）", RequiredName, RequirementState))
+            return string.format("进化组合：%s（%s）", RequiredName, RequirementState)
         end
     end
 
-    return table.concat(Lines, "\n")
+    return ""
 end
 
 function M:HideInteractionLayers()

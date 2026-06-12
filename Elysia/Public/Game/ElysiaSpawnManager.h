@@ -51,13 +51,13 @@ protected:
 	TArray<FElysiaSpawnEntry> EliteSpawnPool;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "1"))
-	int32 MaxAliveMinions = 20;
+	int32 MaxAliveMinions = 80.f;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "1"))
 	int32 SpawnBatchSize = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
-	float SpawnInterval = 1.f;
+	float SpawnInterval = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
 	float EliteSpawnInterval = 45.f;

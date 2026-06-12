@@ -3,6 +3,8 @@
 
 #include "AbilitySystem/ElysiaAbilitySystemComponent.h"
 
+#include "Animation/AnimMontage.h"
+#include "GameFramework/Character.h"
 #include "GameplayEffect.h"
 
 void UElysiaAbilitySystemComponent::AddCharacterAbilities(const TArray<TSubclassOf<UGameplayAbility>>& StartupAbilities)
@@ -39,6 +41,17 @@ void UElysiaAbilitySystemComponent::GrantOrUpdateAbilityLevel(TSubclassOf<UGamep
 
 	FGameplayAbilitySpec Spec = FGameplayAbilitySpec(AbilityClass, ClampedAbilityLevel);
 	GiveAbilityAndActivateOnce(Spec);
+}
+
+void UElysiaAbilitySystemComponent::ClientPlayAbilityMontage_Implementation(UAnimMontage* Montage, float PlayRate)
+{
+	ACharacter* AvatarCharacter = Cast<ACharacter>(GetAvatarActor());
+	if (!AvatarCharacter || !Montage)
+	{
+		return;
+	}
+
+	AvatarCharacter->PlayAnimMontage(Montage, FMath::Max(0.01f, PlayRate));
 }
 
 bool UElysiaAbilitySystemComponent::IsCooldownActive(FGameplayTag CooldownTag) const

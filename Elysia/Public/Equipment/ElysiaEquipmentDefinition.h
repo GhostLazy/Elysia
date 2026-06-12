@@ -31,7 +31,7 @@ struct FElysiaEquipmentDefinition
 	FText DisplayName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment", meta = (MultiLine = true))
-	FText Description;
+	FText Description = NSLOCTEXT("ElysiaEquipment", "DefaultDescription", "请输入文本");
 
 	// 按目标等级填写升级卡描述；数组下标0对应1级。
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment")
@@ -60,9 +60,6 @@ struct FElysiaEquipmentDefinition
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution", meta = (MultiLine = true))
 	FText EvolvedDescription;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment|Evolution")
-	TObjectPtr<UTexture2D> EvolvedIcon = nullptr;
 };
 
 UCLASS(BlueprintType)

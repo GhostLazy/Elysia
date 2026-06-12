@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "ElysiaAbilitySystemComponent.generated.h"
 
+class UAnimMontage;
+
 USTRUCT(BlueprintType)
 struct ELYSIA_API FElysiaCooldownInfo
 {
@@ -37,6 +39,10 @@ public:
 	
 	void AddCharacterAbilities(const TArray<TSubclassOf<UGameplayAbility>>& StartupAbilities);
 	void GrantOrUpdateAbilityLevel(TSubclassOf<UGameplayAbility> AbilityClass, int32 AbilityLevel);
+
+	// GAS 默认不会在自主代理上重放服务器 Montage，供服务端向所属客户端补发纯表现动画。
+	UFUNCTION(Client, Unreliable)
+	void ClientPlayAbilityMontage(UAnimMontage* Montage, float PlayRate);
 
 	UFUNCTION(BlueprintPure, Category = "Cooldown")
 	bool IsCooldownActive(FGameplayTag CooldownTag) const;

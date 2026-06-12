@@ -61,7 +61,7 @@ struct FElysiaEquipmentChoiceDisplayData
 	FText DisplayName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
-	FText Description;
+	FText Description = NSLOCTEXT("ElysiaEquipment", "DefaultDescription", "请输入文本");
 
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment|Choice")
 	TObjectPtr<UTexture2D> Icon = nullptr;
