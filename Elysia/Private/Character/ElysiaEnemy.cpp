@@ -37,11 +37,15 @@ AElysiaEnemy::AElysiaEnemy()
 	// 碰撞逻辑处理
 	GetCapsuleComponent()->SetCollisionObjectType(ECC_Minion);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Minion, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Boss, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Player, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
+	// Mesh不参与任何碰撞事件
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetGenerateOverlapEvents(false);
+	GetMesh()->SetCanEverAffectNavigation(false);
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AElysiaMinionAIController::StaticClass();
@@ -190,6 +194,15 @@ AActor* AElysiaEnemy::GetPreferredDamageTarget() const
 	}
 
 	return nullptr;
+}
+
+void AElysiaEnemy::SetSoftSeparationOffset(const FVector& InOffset, float BlendAlpha)
+{
+	const FVector PlanarOffset(InOffset.X, InOffset.Y, 0.f);
+	SoftSeparationOffset = FMath::Lerp(
+		SoftSeparationOffset,
+		PlanarOffset,
+		FMath::Clamp(BlendAlpha, 0.f, 1.f));
 }
 
 void AElysiaEnemy::HandlePlayerOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

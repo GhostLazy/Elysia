@@ -62,7 +62,7 @@ private:
 	int32 Level = 1;
 	
 	UPROPERTY(EditDefaultsOnly, Replicated)
-	int32 MaxLevel = 20;
+	int32 MaxLevel = 30;
 	
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_XP)
 	int32 XP = 0;

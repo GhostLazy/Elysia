@@ -26,7 +26,12 @@ function M:WidgetControllerSet()
     self:SetupChoiceCards()
 
     -- 显示初始装备
-    self:HandleEquipmentChoicesChange()
+    if self.LevelUpWidgetController.BroadcastInitialValues then
+        self.LevelUpWidgetController:BroadcastInitialValues()
+    else
+        self:HandleEquipmentChoicesChange()
+        self:HandleEquipmentInventoryChange()
+    end
 end
 
 function M:EnterLevelUpState()

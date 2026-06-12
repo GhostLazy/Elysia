@@ -33,6 +33,11 @@ bool AElysiaReachLocationTrialEvent::ShouldShowActiveTrialDirectionIndicator() c
 	return HasBeenTriggered();
 }
 
+bool AElysiaReachLocationTrialEvent::ShouldShowIndicatorCountdown() const
+{
+	return false;
+}
+
 FVector AElysiaReachLocationTrialEvent::GetCompletionRewardLocation() const
 {
 	return DestinationLocation;

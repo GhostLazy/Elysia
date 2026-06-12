@@ -40,6 +40,19 @@ void UElysiaLevelUpWidgetController::BindCallbacksToDependencies()
 	}
 }
 
+void UElysiaLevelUpWidgetController::BroadcastInitialValues()
+{
+	if (const UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())
+	{
+		CurrentEquipmentChoices = EquipmentComponent->GetPendingChoices();
+		OwnedEquipments = EquipmentComponent->GetOwnedEquipments();
+		RefreshCurrentEquipmentChoiceDisplays();
+	}
+
+	OnEquipmentChoicesChanged.Broadcast();
+	OnEquipmentInventoryChanged.Broadcast();
+}
+
 void UElysiaLevelUpWidgetController::SelectEquipmentByIndex(int32 ChoiceIndex)
 {
 	if (UElysiaEquipmentComponent* EquipmentComponent = GetEquipmentComponent())

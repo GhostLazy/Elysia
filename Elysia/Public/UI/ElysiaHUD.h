@@ -25,6 +25,7 @@ public:
 	void InitOverlay(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
 	UElysiaOverlayWidgetController* GetOverlayWidgetController(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
 	UElysiaLevelUpWidgetController* GetLevelUpWidgetController(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	bool ShowRunResult(int32 FinalScore);
 	
 protected:
 	
@@ -40,10 +41,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UElysiaLevelUpWidgetController> LevelUpWidgetControllerClass;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UElysiaUserWidget> RunResultWidgetClass;
+
 	UPROPERTY()
 	TObjectPtr<UElysiaOverlayWidgetController> OverlayWidgetController;
 
 	UPROPERTY()
 	TObjectPtr<UElysiaLevelUpWidgetController> LevelUpWidgetController;
+
+	UPROPERTY()
+	TObjectPtr<UElysiaUserWidget> RunResultWidget;
 	
 };

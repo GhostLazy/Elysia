@@ -29,7 +29,11 @@ public:
 	int32 GetNormalPhaseTotalDuration() const { return NormalPhaseTotalDuration; }
 	int32 GetNormalScore() const { return NormalScore; }
 	int32 GetBossScore() const { return BossScore; }
+
+	UFUNCTION(BlueprintPure, Category = "Run|Score")
 	int32 GetTotalScore() const { return TotalScore; }
+
+	UFUNCTION(BlueprintPure, Category = "Run")
 	bool IsRunFinished() const { return bRunFinished; }
 	AElysiaEnemy* GetCurrentBoss() const { return CurrentBoss.Get(); }
 

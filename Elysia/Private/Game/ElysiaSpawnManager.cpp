@@ -24,6 +24,22 @@ AElysiaSpawnManager::AElysiaSpawnManager()
 void AElysiaSpawnManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority() && bEnableSoftSeparation)
+	{
+		GetWorldTimerManager().SetTimer(
+			SoftSeparationTimerHandle,
+			this,
+			&AElysiaSpawnManager::HandleSoftSeparationTick,
+			FMath::Max(0.05f, SoftSeparationInterval),
+			true);
+	}
+}
+
+void AElysiaSpawnManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(SoftSeparationTimerHandle);
+	Super::EndPlay(EndPlayReason);
 }
 
 void AElysiaSpawnManager::HandleSpawnTick()
@@ -374,6 +390,9 @@ bool AElysiaSpawnManager::IsSpawnLocationAvailable(const FVector& SpawnLocation,
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Player);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Minion);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Boss);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaSpawnManagerOverlap), false);
 	QueryParams.AddIgnoredActor(this);
@@ -388,6 +407,116 @@ bool AElysiaSpawnManager::IsSpawnLocationAvailable(const FVector& SpawnLocation,
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(100.f),
 		QueryParams);
+}
+
+void AElysiaSpawnManager::HandleSoftSeparationTick()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	TArray<AElysiaEnemy*> Minions;
+	TArray<FVector> MinionLocations;
+	for (TActorIterator<AElysiaEnemy> It(GetWorld()); It; ++It)
+	{
+		AElysiaEnemy* Enemy = *It;
+		if (!IsValid(Enemy) || Enemy->IsDead() || Enemy->GetEnemyType() != EElysiaEnemyType::Minion)
+		{
+			continue;
+		}
+
+		Minions.Add(Enemy);
+		MinionLocations.Add(Enemy->GetActorLocation());
+	}
+
+	if (Minions.IsEmpty())
+	{
+		return;
+	}
+
+	const float SeparationRadius = FMath::Max(1.f, SoftSeparationRadius);
+	const float SeparationRadiusSquared = FMath::Square(SeparationRadius);
+	const float CellSize = SeparationRadius;
+	TMap<FIntPoint, TArray<int32>> SpatialGrid;
+	SpatialGrid.Reserve(Minions.Num());
+
+	// A cell matches the neighbor radius, so each minion only checks its surrounding nine cells.
+	auto GetCell = [CellSize](const FVector& Location)
+	{
+		return FIntPoint(
+			FMath::FloorToInt(Location.X / CellSize),
+			FMath::FloorToInt(Location.Y / CellSize));
+	};
+
+	for (int32 MinionIndex = 0; MinionIndex < MinionLocations.Num(); ++MinionIndex)
+	{
+		SpatialGrid.FindOrAdd(GetCell(MinionLocations[MinionIndex])).Add(MinionIndex);
+	}
+
+	for (int32 MinionIndex = 0; MinionIndex < Minions.Num(); ++MinionIndex)
+	{
+		const FVector MinionLocation = MinionLocations[MinionIndex];
+		const FIntPoint CenterCell = GetCell(MinionLocation);
+		FVector SeparationDirection = FVector::ZeroVector;
+
+		for (int32 CellX = CenterCell.X - 1; CellX <= CenterCell.X + 1; ++CellX)
+		{
+			for (int32 CellY = CenterCell.Y - 1; CellY <= CenterCell.Y + 1; ++CellY)
+			{
+				const TArray<int32>* CellMinions = SpatialGrid.Find(FIntPoint(CellX, CellY));
+				if (!CellMinions)
+				{
+					continue;
+				}
+
+				for (const int32 OtherIndex : *CellMinions)
+				{
+					if (OtherIndex == MinionIndex)
+					{
+						continue;
+					}
+
+					FVector Delta = MinionLocation - MinionLocations[OtherIndex];
+					Delta.Z = 0.f;
+					const float DistanceSquared = Delta.SizeSquared2D();
+					if (DistanceSquared >= SeparationRadiusSquared)
+					{
+						continue;
+					}
+
+					float Distance = 0.f;
+					FVector AwayDirection;
+					if (DistanceSquared <= KINDA_SMALL_NUMBER)
+					{
+						const int32 FirstIndex = FMath::Min(MinionIndex, OtherIndex);
+						const int32 SecondIndex = FMath::Max(MinionIndex, OtherIndex);
+						const uint32 PairHash = HashCombine(GetTypeHash(FirstIndex), GetTypeHash(SecondIndex));
+						const float AngleRadians = static_cast<float>(PairHash % 3600u) * (2.f * PI / 3600.f);
+						AwayDirection = FVector(FMath::Cos(AngleRadians), FMath::Sin(AngleRadians), 0.f);
+						if (MinionIndex > OtherIndex)
+						{
+							AwayDirection *= -1.f;
+						}
+					}
+					else
+					{
+						Distance = FMath::Sqrt(DistanceSquared);
+						AwayDirection = Delta / Distance;
+					}
+
+					const float ProximityWeight = 1.f - Distance / SeparationRadius;
+					SeparationDirection += AwayDirection * ProximityWeight;
+				}
+			}
+		}
+
+		const float SeparationInfluence = FMath::Clamp(SeparationDirection.Size2D(), 0.f, 1.f);
+		const FVector DesiredOffset = SeparationDirection.GetSafeNormal2D()
+			* FMath::Max(0.f, SoftSeparationMaxOffset)
+			* SeparationInfluence;
+		Minions[MinionIndex]->SetSoftSeparationOffset(DesiredOffset, SoftSeparationBlendAlpha);
+	}
 }
 
 bool AElysiaSpawnManager::TryFindGroundedBossSpawnLocation(const FVector& PlayerLocation, TSubclassOf<AElysiaEnemy> EnemyClass, FVector& OutSpawnLocation) const

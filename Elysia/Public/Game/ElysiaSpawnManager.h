@@ -43,6 +43,7 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn")
 	TArray<FElysiaSpawnEntry> SpawnPool;
@@ -57,7 +58,7 @@ protected:
 	int32 SpawnBatchSize = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
-	float SpawnInterval = 0.5f;
+	float SpawnInterval = 1.f;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "0.1"))
 	float EliteSpawnInterval = 45.f;
@@ -79,6 +80,21 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Spawn", meta = (ClampMin = "1"))
 	int32 MaxSpawnAttemptsPerTick = 16;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Soft Separation")
+	bool bEnableSoftSeparation = true;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Soft Separation", meta = (ClampMin = "0.05"))
+	float SoftSeparationInterval = 0.25f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Soft Separation", meta = (ClampMin = "1.0"))
+	float SoftSeparationRadius = 180.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Soft Separation", meta = (ClampMin = "0.0"))
+	float SoftSeparationMaxOffset = 140.f;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn|Soft Separation", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SoftSeparationBlendAlpha = 0.35f;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn|Boss", meta = (ClampMin = "1"))
 	int32 BossMaxSpawnAttempts = 24;
@@ -124,6 +140,7 @@ private:
 	void HandleSpawnTick();
 	void HandleEliteSpawnTick();
 	void HandleTreasureChestSpawnTick();
+	void HandleSoftSeparationTick();
 	int32 CountAliveMinions() const;
 	APawn* FindSpawnTargetPlayer() const;
 	TSubclassOf<AElysiaEnemy> ChooseEnemyClassToSpawn() const;
@@ -147,6 +164,7 @@ private:
 	FTimerHandle SpawnTimerHandle;
 	FTimerHandle EliteSpawnTimerHandle;
 	FTimerHandle TreasureChestSpawnTimerHandle;
+	FTimerHandle SoftSeparationTimerHandle;
 	TWeakObjectPtr<AElysiaTreasureChest> ActiveTreasureChest;
 	bool bNormalSpawnEnabled = false;
 	bool bTreasureChestSpawnEnabled = false;

@@ -41,6 +41,8 @@ void FElysiaGameplayTags::InitNativeGameplayTags()
 
 	// GameplayCue：角色武器表现
 	GameplayTags.GameplayCue_Weapon_SwordSlash = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Weapon.SwordSlash"));
+	GameplayTags.GameplayCue_Weapon_SmartBullet_Explosion = UGameplayTagsManager::Get().AddNativeGameplayTag(
+		FName("GameplayCue.Weapon.SmartBullet.Explosion"));
 
 	// GameplayCue：Boss技能表现
 	GameplayTags.GameplayCue_Boss_Charge_Execute = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("GameplayCue.Boss.Charge.Execute"));

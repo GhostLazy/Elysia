@@ -36,6 +36,18 @@ local function GetRemainingIndicatorTime(IndicatorTarget)
     return 0
 end
 
+local function ShouldShowIndicatorCountdown(IndicatorTarget)
+    if not IndicatorTarget then
+        return false
+    end
+
+    if IndicatorTarget.ShouldShowIndicatorCountdown then
+        return IndicatorTarget:ShouldShowIndicatorCountdown()
+    end
+
+    return true
+end
+
 local function GetPointerOrbit(Widget)
     if Widget.Image_pointer and Widget.Image_pointer.GetParent then
         return Widget.Image_pointer:GetParent()
@@ -80,11 +92,15 @@ function M:RefreshDisplay()
 		return
 	end
 
-	local Remaining = GetRemainingIndicatorTime(self.IndicatorTarget)
 	self:SetVisibility(UE.ESlateVisibility.SelfHitTestInvisible)
 
 	if self.TextBlock_Time then
-		self.TextBlock_Time:SetText(ToText(FormatRemainingTime(Remaining)))
+        local bShowCountdown = ShouldShowIndicatorCountdown(self.IndicatorTarget)
+        SetWidgetVisible(self.TextBlock_Time, bShowCountdown)
+        if bShowCountdown then
+            local Remaining = GetRemainingIndicatorTime(self.IndicatorTarget)
+            self.TextBlock_Time:SetText(ToText(FormatRemainingTime(Remaining)))
+        end
 	end
 end
 

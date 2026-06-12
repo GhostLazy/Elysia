@@ -295,7 +295,7 @@ TSubclassOf<AElysiaEnemy> AElysiaGameModeBase::GetBossClassForRound(int32 BossRo
 
 int32 AElysiaGameModeBase::GetNormalEnemyLevelForWave(int32 NormalWave) const
 {
-	return NormalWave <= 2 ? 1 : 2;
+	return NormalWave <= TotalBossRounds / 2 ? 1 : 2;
 }
 
 AElysiaGameState* AElysiaGameModeBase::GetElysiaGameState() const

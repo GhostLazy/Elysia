@@ -31,5 +31,21 @@ void AElysiaMinionAIController::UpdateBehavior()
 		return;
 	}
 
-	MoveToCurrentTarget();
+	const FVector SeparationOffset = ElysiaEnemy->GetSoftSeparationOffset();
+	if (SeparationOffset.IsNearlyZero(1.f))
+	{
+		MoveToCurrentTarget();
+		return;
+	}
+
+	FVector DirectionToTarget = GetTargetActor()->GetActorLocation() - ElysiaEnemy->GetActorLocation();
+	DirectionToTarget.Z = 0.f;
+	const float DistanceToTarget = DirectionToTarget.Size2D();
+	const float ForwardDistance = FMath::Min(
+		DistanceToTarget,
+		FMath::Max(100.f, SeparationLookAheadDistance));
+	const FVector MoveDestination = ElysiaEnemy->GetActorLocation()
+		+ DirectionToTarget.GetSafeNormal2D() * ForwardDistance
+		+ SeparationOffset * FMath::Max(0.f, SeparationSteeringScale);
+	MoveToLocation(MoveDestination, AcceptanceRadius, true, true, true, true, nullptr, true);
 }

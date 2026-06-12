@@ -6,6 +6,7 @@
 #include "UI/ElysiaLevelUpWidgetController.h"
 #include "UI/ElysiaOverlayWidgetController.h"
 #include "UI/ElysiaUserWidget.h"
+#include "Game/ElysiaGameState.h"
 
 void AElysiaHUD::InitOverlay(APlayerState* PS, APlayerController* PC, UAbilitySystemComponent* ASC, UAttributeSet* AS)
 {
@@ -51,4 +52,32 @@ UElysiaLevelUpWidgetController* AElysiaHUD::GetLevelUpWidgetController(APlayerSt
 	}
 
 	return LevelUpWidgetController;
+}
+
+bool AElysiaHUD::ShowRunResult(const int32 FinalScore)
+{
+	if (!IsValid(RunResultWidget))
+	{
+		APlayerController* OwningPlayerController = GetOwningPlayerController();
+		if (!IsValid(OwningPlayerController) || !RunResultWidgetClass)
+		{
+			return false;
+		}
+
+		RunResultWidget = CreateWidget<UElysiaUserWidget>(OwningPlayerController, RunResultWidgetClass);
+		if (!IsValid(RunResultWidget))
+		{
+			return false;
+		}
+
+		if (AElysiaGameState* ElysiaGameState = GetWorld()->GetGameState<AElysiaGameState>())
+		{
+			RunResultWidget->SetWidgetController(ElysiaGameState);
+		}
+
+		RunResultWidget->AddToViewport(1000);
+	}
+
+	RunResultWidget->SetVisibility(ESlateVisibility::Visible);
+	return true;
 }

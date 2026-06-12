@@ -91,6 +91,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Trial|Indicator")
 	virtual bool ShouldShowActiveTrialDirectionIndicator() const;
 
+	UFUNCTION(BlueprintPure, Category = "Trial|Indicator")
+	virtual bool ShouldShowIndicatorCountdown() const;
+
 	UFUNCTION(BlueprintPure, Category = "Trial|Rewards")
 	virtual FVector GetCompletionRewardLocation() const;
 

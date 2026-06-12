@@ -77,5 +77,6 @@ void UElysiaBossSweepAbility::BuildExecuteGameplayCueParameters(
 {
 	Super::BuildExecuteGameplayCueParameters(OutParameters, Boss, Origin, Direction);
 	OutParameters.RawMagnitude = SweepRadius;
+	OutParameters.Normal = FVector::UpVector;
 	OutParameters.NormalizedMagnitude = SweepAngle;
 }

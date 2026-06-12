@@ -74,4 +74,5 @@ void AElysiaGameState::SetScores(int32 InNormalScore, int32 InBossScore, int32 I
 void AElysiaGameState::SetRunFinished(bool bInRunFinished)
 {
 	bRunFinished = bInRunFinished;
+	ForceNetUpdate();
 }

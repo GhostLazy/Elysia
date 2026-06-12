@@ -182,6 +182,18 @@ void UElysiaEquipmentComponent::GrantEquipment(const FElysiaEquipmentDefinition&
 	FElysiaEquipmentEntry* OwnedEntry = FindOwnedEquipment(EquipmentDefinition.EquipmentId);
 	if (OwnedEntry == nullptr)
 	{
+		if (!CanAcquireNewEquipment(EquipmentDefinition))
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("%s cannot grant new equipment '%s': the %s equipment capacity is full."),
+				*GetName(),
+				*EquipmentDefinition.EquipmentId.ToString(),
+				EquipmentDefinition.EquipmentType == EElysiaEquipmentType::Weapon ? TEXT("weapon") : TEXT("passive"));
+			return;
+		}
+
 		// 首次获得装备时，新建条目并从1级开始
 		FElysiaEquipmentEntry NewEntry;
 		NewEntry.Equipment = EquipmentDefinition;
@@ -446,6 +458,45 @@ int32 UElysiaEquipmentComponent::FindOwnedEquipmentIndex(FName EquipmentId) cons
 	});
 }
 
+int32 UElysiaEquipmentComponent::GetOwnedEquipmentCountByType(const EElysiaEquipmentType EquipmentType) const
+{
+	int32 OwnedCount = 0;
+	for (const FElysiaEquipmentEntry& Entry : OwnedEquipments)
+	{
+		if (!Entry.Equipment.EquipmentId.IsNone()
+			&& Entry.Equipment.EquipmentType == EquipmentType)
+		{
+			++OwnedCount;
+		}
+	}
+
+	return OwnedCount;
+}
+
+int32 UElysiaEquipmentComponent::GetMaxEquipmentCountByType(const EElysiaEquipmentType EquipmentType) const
+{
+	return EquipmentType == EElysiaEquipmentType::Weapon
+		? FMath::Max(1, MaxWeaponCount)
+		: FMath::Max(1, MaxPassiveCount);
+}
+
+bool UElysiaEquipmentComponent::CanAcquireNewEquipment(
+	const FElysiaEquipmentDefinition& EquipmentDefinition) const
+{
+	if (EquipmentDefinition.EquipmentId.IsNone())
+	{
+		return false;
+	}
+
+	if (FindOwnedEquipmentIndex(EquipmentDefinition.EquipmentId) != INDEX_NONE)
+	{
+		return true;
+	}
+
+	return GetOwnedEquipmentCountByType(EquipmentDefinition.EquipmentType)
+		< GetMaxEquipmentCountByType(EquipmentDefinition.EquipmentType);
+}
+
 bool UElysiaEquipmentComponent::CanOfferEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const
 {
 	if (EquipmentDefinition.EquipmentId.IsNone())
@@ -456,7 +507,7 @@ bool UElysiaEquipmentComponent::CanOfferEquipment(const FElysiaEquipmentDefiniti
 	const int32 OwnedIndex = FindOwnedEquipmentIndex(EquipmentDefinition.EquipmentId);
 	if (OwnedIndex == INDEX_NONE)
 	{
-		return true;
+		return CanAcquireNewEquipment(EquipmentDefinition);
 	}
 
 	const int32 CurrentLevel = OwnedEquipments[OwnedIndex].Level;

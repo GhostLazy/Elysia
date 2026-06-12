@@ -192,6 +192,11 @@ bool AElysiaTrialEventBase::ShouldShowActiveTrialDirectionIndicator() const
 	return false;
 }
 
+bool AElysiaTrialEventBase::ShouldShowIndicatorCountdown() const
+{
+	return true;
+}
+
 FVector AElysiaTrialEventBase::GetCompletionRewardLocation() const
 {
 	return GetActorLocation();

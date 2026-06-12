@@ -29,6 +29,7 @@ public:
 
 	virtual FVector GetIndicatorTargetLocation() const override;
 	virtual bool ShouldShowActiveTrialDirectionIndicator() const override;
+	virtual bool ShouldShowIndicatorCountdown() const override;
 	virtual FVector GetCompletionRewardLocation() const override;
 
 protected:

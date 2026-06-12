@@ -36,6 +36,8 @@ public:
 	void SetLevel(int32 InLevel) { Level = FMath::Max(1, InLevel); }
 	void SetDeathRewardsEnabled(bool bEnabled) { bDeathRewardsEnabled = bEnabled; }
 	bool AreDeathRewardsEnabled() const { return bDeathRewardsEnabled; }
+	void SetSoftSeparationOffset(const FVector& InOffset, float BlendAlpha);
+	const FVector& GetSoftSeparationOffset() const { return SoftSeparationOffset; }
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool HasOverlappingPlayers() const { return CurrentOverlappingPlayers.Num() > 0; }
@@ -101,5 +103,6 @@ private:
 
 	TSet<TWeakObjectPtr<AActor>> CurrentOverlappingPlayers;
 	TMap<TWeakObjectPtr<AActor>, FActiveGameplayEffectHandle> ActiveContactDamageEffects;
+	FVector SoftSeparationOffset = FVector::ZeroVector;
 	
 };

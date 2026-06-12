@@ -49,6 +49,7 @@ public:
 
 	// GameplayCue：角色武器表现
 	FGameplayTag GameplayCue_Weapon_SwordSlash;
+	FGameplayTag GameplayCue_Weapon_SmartBullet_Explosion;
 
 	// GameplayCue：Boss技能表现
 	FGameplayTag GameplayCue_Boss_Charge_Execute;

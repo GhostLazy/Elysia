@@ -86,4 +86,5 @@ private:
 	FDelegateHandle BossHealthChangedHandle;
 	FDelegateHandle BossMaxHealthChangedHandle;
 	FTimerHandle ReplicatedStateRefreshTimerHandle;
+	bool bRunResultShown = false;
 };

@@ -131,6 +131,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Equipment", meta = (ClampMin = "1"))
 	int32 ChoiceCountPerLevel = 3;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Equipment|Capacity", meta = (ClampMin = "1"))
+	int32 MaxWeaponCount = 4;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Equipment|Capacity", meta = (ClampMin = "1"))
+	int32 MaxPassiveCount = 4;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Equipment", meta = (ClampMin = "1.0"))
 	float RecoveryChoiceHealthAmount = 50.f;
 
@@ -169,6 +175,9 @@ private:
 	const FElysiaEquipmentEntry* FindOwnedEquipmentById(FName EquipmentId) const;
 	const FElysiaEquipmentEntry* FindOwnedEquipmentByAbilityClass(TSubclassOf<UGameplayAbility> AbilityClass) const;
 	int32 FindOwnedEquipmentIndex(FName EquipmentId) const;
+	int32 GetOwnedEquipmentCountByType(EElysiaEquipmentType EquipmentType) const;
+	int32 GetMaxEquipmentCountByType(EElysiaEquipmentType EquipmentType) const;
+	bool CanAcquireNewEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	bool CanOfferEquipment(const FElysiaEquipmentDefinition& EquipmentDefinition) const;
 	UAbilitySystemComponent* GetAbilitySystemComponent() const;
 

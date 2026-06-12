@@ -10,6 +10,7 @@
 #include "Game/ElysiaGameState.h"
 #include "Player/ElysiaPlayerState.h"
 #include "TimerManager.h"
+#include "UI/ElysiaHUD.h"
 
 void UElysiaOverlayWidgetController::BindCallbacksToDependencies()
 {
@@ -81,6 +82,18 @@ void UElysiaOverlayWidgetController::RefreshReplicatedState()
 	{
 		// 即使初始属性复制早于 UI 委托绑定，也能从当前 AttributeSet 补回正确血量。
 		BroadcastBossHealthPercent();
+	}
+	const bool bRunFinished = ElysiaGameState->IsRunFinished();
+	if (bRunFinished && !bRunResultShown)
+	{
+		if (AElysiaHUD* ElysiaHUD = Cast<AElysiaHUD>(PlayerController ? PlayerController->GetHUD() : nullptr))
+		{
+			bRunResultShown = ElysiaHUD->ShowRunResult(ElysiaGameState->GetTotalScore());
+		}
+	}
+	else if (!bRunFinished)
+	{
+		bRunResultShown = false;
 	}
 }
 

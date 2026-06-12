@@ -111,6 +111,9 @@ public:
 	virtual void BindCallbacksToDependencies() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	void BroadcastInitialValues();
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void SelectEquipmentByIndex(int32 ChoiceIndex);
 
 	// 是否存在待选择的升级候选项。
