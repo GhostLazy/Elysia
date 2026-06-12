@@ -26,6 +26,8 @@ AElysiaBossBase::AElysiaBossBase()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
+	
+	Tags.Remove(FName("Minion"));
 }
 
 void AElysiaBossBase::BeginPlay()

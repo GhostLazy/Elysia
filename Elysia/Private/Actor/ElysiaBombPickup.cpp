@@ -31,7 +31,7 @@ void AElysiaBombPickup::HandlePickedBy(AElysiaCharacter* Character)
 		ActorsToIgnore,
 		KillRadius,
 		GetActorLocation(),
-		FName("Enemy"));
+		FName("Minion"));
 
 	for (AActor* OverlapActor : OverlapActors)
 	{

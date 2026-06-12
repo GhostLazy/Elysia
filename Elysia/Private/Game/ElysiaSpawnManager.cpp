@@ -6,9 +6,9 @@
 #include "Actor/ElysiaTreasureChest.h"
 #include "Character/ElysiaCharacterBase.h"
 #include "Character/ElysiaEnemy.h"
-#include "Components/CapsuleComponent.h"
 #include "EngineUtils.h"
 #include "Elysia/Elysia.h"
+#include "Game/ElysiaGroundSpawnUtility.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "NavigationSystem.h"
@@ -186,7 +186,10 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> E
 
 	float CapsuleRadius = 0.f;
 	float CapsuleHalfHeight = 0.f;
-	if (!GetEnemyCapsuleSize(EnemyClass, CapsuleRadius, CapsuleHalfHeight))
+	if (!FElysiaGroundSpawnUtility::GetCharacterCapsuleSize(
+		EnemyClass.Get(),
+		CapsuleRadius,
+		CapsuleHalfHeight))
 	{
 		return nullptr;
 	}
@@ -215,7 +218,13 @@ AElysiaEnemy* AElysiaSpawnManager::SpawnSpecialEnemy(TSubclassOf<AElysiaEnemy> E
 		SpawnedEnemy->SetLevel(EnemyLevel);
 		SpawnedEnemy->FinishSpawning(SpawnTransform);
 
-		if (HasGroundBelowBoss(SpawnedEnemy->GetActorLocation(), CapsuleHalfHeight, SpawnedEnemy))
+		if (FElysiaGroundSpawnUtility::HasGroundBelowCharacter(
+			GetWorld(),
+			SpawnedEnemy->GetActorLocation(),
+			CapsuleHalfHeight,
+			BossGroundClearance,
+			BossPostSpawnGroundCheckDistance,
+			SpawnedEnemy))
 		{
 			return SpawnedEnemy;
 		}
@@ -523,7 +532,10 @@ bool AElysiaSpawnManager::TryFindGroundedBossSpawnLocation(const FVector& Player
 {
 	float CapsuleRadius = 0.f;
 	float CapsuleHalfHeight = 0.f;
-	if (!GetEnemyCapsuleSize(EnemyClass, CapsuleRadius, CapsuleHalfHeight))
+	if (!FElysiaGroundSpawnUtility::GetCharacterCapsuleSize(
+		EnemyClass.Get(),
+		CapsuleRadius,
+		CapsuleHalfHeight))
 	{
 		return false;
 	}
@@ -535,7 +547,15 @@ bool AElysiaSpawnManager::TryFindGroundedBossSpawnLocation(const FVector& Player
 		if (NavSystem->ProjectPointToNavigation(CandidateLocation, NavLocation, NavProjectExtent))
 		{
 			FVector GroundedSpawnLocation;
-			if (TryProjectBossCandidateToGround(NavLocation.Location, CapsuleHalfHeight, GroundedSpawnLocation)
+			if (FElysiaGroundSpawnUtility::TryProjectCandidateToGround(
+					GetWorld(),
+					NavLocation.Location,
+					CapsuleHalfHeight,
+					BossGroundTraceUpDistance,
+					BossGroundTraceDownDistance,
+					BossGroundClearance,
+					this,
+					GroundedSpawnLocation)
 				&& IsBossSpawnLocationClear(GroundedSpawnLocation, CapsuleRadius, CapsuleHalfHeight, FindSpawnTargetPlayer()))
 			{
 				OutSpawnLocation = GroundedSpawnLocation;
@@ -545,28 +565,6 @@ bool AElysiaSpawnManager::TryFindGroundedBossSpawnLocation(const FVector& Player
 	}
 
 	return false;
-}
-
-bool AElysiaSpawnManager::TryProjectBossCandidateToGround(const FVector& CandidateLocation, float CapsuleHalfHeight, FVector& OutSpawnLocation) const
-{
-	FHitResult GroundHit;
-	const FVector TraceStart = CandidateLocation + FVector(0.f, 0.f, BossGroundTraceUpDistance);
-	const FVector TraceEnd = CandidateLocation - FVector(0.f, 0.f, BossGroundTraceDownDistance);
-
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaBossGroundTrace), false);
-	QueryParams.AddIgnoredActor(this);
-
-	if (!GetWorld()->LineTraceSingleByObjectType(GroundHit, TraceStart, TraceEnd, ObjectQueryParams, QueryParams)
-		|| !GroundHit.bBlockingHit)
-	{
-		return false;
-	}
-
-	OutSpawnLocation = GroundHit.ImpactPoint + FVector::UpVector * (CapsuleHalfHeight + BossGroundClearance);
-	return true;
 }
 
 bool AElysiaSpawnManager::IsBossSpawnLocationClear(const FVector& SpawnLocation, float CapsuleRadius, float CapsuleHalfHeight, const AActor* PlayerActor) const
@@ -598,40 +596,6 @@ bool AElysiaSpawnManager::IsBossSpawnLocationClear(const FVector& SpawnLocation,
 		ObjectQueryParams,
 		FCollisionShape::MakeCapsule(CapsuleRadius, TestHalfHeight),
 		QueryParams);
-}
-
-bool AElysiaSpawnManager::HasGroundBelowBoss(const FVector& BossLocation, float CapsuleHalfHeight, const AActor* IgnoredActor) const
-{
-	FHitResult GroundHit;
-	const FVector TraceStart = BossLocation;
-	const FVector TraceEnd = BossLocation - FVector::UpVector * (CapsuleHalfHeight + BossGroundClearance + BossPostSpawnGroundCheckDistance);
-
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ElysiaBossPostSpawnGroundTrace), false);
-	QueryParams.AddIgnoredActor(this);
-	if (IgnoredActor)
-	{
-		QueryParams.AddIgnoredActor(IgnoredActor);
-	}
-
-	return GetWorld()->LineTraceSingleByObjectType(GroundHit, TraceStart, TraceEnd, ObjectQueryParams, QueryParams)
-		&& GroundHit.bBlockingHit;
-}
-
-bool AElysiaSpawnManager::GetEnemyCapsuleSize(TSubclassOf<AElysiaEnemy> EnemyClass, float& OutCapsuleRadius, float& OutCapsuleHalfHeight) const
-{
-	const AElysiaEnemy* DefaultEnemy = EnemyClass ? EnemyClass->GetDefaultObject<AElysiaEnemy>() : nullptr;
-	const UCapsuleComponent* CapsuleComponent = DefaultEnemy ? DefaultEnemy->GetCapsuleComponent() : nullptr;
-	if (!CapsuleComponent)
-	{
-		return false;
-	}
-
-	OutCapsuleRadius = CapsuleComponent->GetScaledCapsuleRadius();
-	OutCapsuleHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
-	return OutCapsuleRadius > 0.f && OutCapsuleHalfHeight > 0.f;
 }
 
 FVector AElysiaSpawnManager::GenerateSpawnOffsetInBand() const

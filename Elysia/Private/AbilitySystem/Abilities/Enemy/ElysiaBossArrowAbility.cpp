@@ -96,13 +96,16 @@ void UElysiaBossArrowAbility::FireArrow()
 		SpawnTransform.SetLocation(Boss->GetActorTransform().TransformPosition(ProjectileSpawnOffset));
 	}
 
-	const FVector AimDirection = (TargetActor->GetActorLocation() - SpawnTransform.GetLocation()).GetSafeNormal();
+	const FVector AimDirection = (TargetActor->GetActorLocation() - SpawnTransform.GetLocation()).GetSafeNormal2D();
 	if (AimDirection.IsNearlyZero())
 	{
 		FinishShotIfNeeded();
 		return;
 	}
-	SpawnTransform.SetRotation(AimDirection.Rotation().Quaternion());
+
+	// Boss 箭矢同样只取水平面方向，Socket 旋转和目标高度均不影响俯仰角。
+	const FRotator SpawnRotation(0.f, AimDirection.Rotation().Yaw, 0.f);
+	SpawnTransform.SetRotation(SpawnRotation.Quaternion());
 
 	AElysiaBossProjectile* Projectile = Boss->GetWorld()->SpawnActorDeferred<AElysiaBossProjectile>(
 		ProjectileClass,
@@ -122,8 +125,9 @@ void UElysiaBossArrowAbility::FireArrow()
 		DamageEffectClass,
 		FMath::Max(1.f, DamageEffectLevel),
 		EffectContext);
-	Projectile->SetMovementSpeed(ProjectileSpeed);
 	Projectile->FinishSpawning(SpawnTransform);
+	Projectile->SetMovementSpeed(ProjectileSpeed);
+	Projectile->SetFlatFlight(AimDirection);
 	FinishShotIfNeeded();
 }
 

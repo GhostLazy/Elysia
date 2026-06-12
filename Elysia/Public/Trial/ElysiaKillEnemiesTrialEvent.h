@@ -22,7 +22,7 @@ public:
 	virtual FVector GetCompletionRewardLocation() const override;
 
 	UFUNCTION(BlueprintPure, Category = "Trial|Kill Enemies")
-	int32 GetRemainingEnemyCount() const { return ActiveTrialEnemies.Num(); }
+	int32 GetRemainingEnemyCount() const;
 
 protected:
 
@@ -36,9 +36,6 @@ protected:
 	TArray<TSubclassOf<AElysiaEnemy>> TrialEnemyClasses;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies", meta = (ClampMin = "1"))
-	int32 EnemyCount = 5;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies", meta = (ClampMin = "1"))
 	int32 EnemyLevel = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies", meta = (ClampMin = "0.0"))
@@ -50,13 +47,41 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies")
 	FVector NavProjectionExtent = FVector(200.f, 200.f, 600.f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies|Ground", meta = (ClampMin = "0.0"))
+	float GroundTraceUpDistance = 2000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies|Ground", meta = (ClampMin = "0.0"))
+	float GroundTraceDownDistance = 5000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies|Ground", meta = (ClampMin = "0.0"))
+	float GroundClearance = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies|Ground", meta = (ClampMin = "0.0"))
+	float PostSpawnGroundCheckDistance = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trial|Kill Enemies", meta = (ClampMin = "0.05"))
+	float SpawnRetryInterval = 0.5f;
+
 private:
 
 	void SpawnTrialEnemies();
-	bool TryFindEnemySpawnLocation(FVector& OutSpawnLocation) const;
+	bool SpawnSingleTrialEnemy(const TArray<TSubclassOf<AElysiaEnemy>>& ValidEnemyClasses);
+	bool TryFindEnemySpawnLocation(float CapsuleHalfHeight, FVector& OutSpawnLocation) const;
+	void ScheduleSpawnRetry();
+	void ClearSpawnRetryTimer();
+	void PruneInvalidTrialEnemies();
 	void HandleTrialEnemyDied(AElysiaEnemy* DeadEnemy);
+
+	UFUNCTION()
+	void HandleTrialEnemyDestroyed(AActor* DestroyedActor);
+
+	void UnregisterTrialEnemy(AElysiaEnemy* Enemy);
 	void ClearTrialEnemies(bool bDestroyRemainingEnemies);
+
+	static constexpr int32 RequiredEnemyKillCount = 2;
 
 	FVector TrialTriggerLocation = FVector::ZeroVector;
 	TSet<TWeakObjectPtr<AElysiaEnemy>> ActiveTrialEnemies;
+	FTimerHandle SpawnRetryTimerHandle;
+	int32 DefeatedEnemyCount = 0;
 };

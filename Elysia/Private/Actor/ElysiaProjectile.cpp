@@ -47,6 +47,31 @@ void AElysiaProjectile::SetMovementSpeed(float MovementSpeed) const
 	ProjectileMovement->MaxSpeed = MovementSpeed;
 }
 
+void AElysiaProjectile::SetFlatFlight(const FVector& FlightDirection) const
+{
+	if (!ProjectileMovement)
+	{
+		return;
+	}
+
+	FVector FlatDirection = FlightDirection.GetSafeNormal2D();
+	if (FlatDirection.IsNearlyZero())
+	{
+		FlatDirection = GetActorForwardVector().GetSafeNormal2D();
+	}
+	if (FlatDirection.IsNearlyZero())
+	{
+		FlatDirection = FVector::ForwardVector;
+	}
+
+	// 完成生成后重写最终速度，覆盖蓝图 Construction Script 可能留下的重力或垂直速度。
+	const float MovementSpeed = FMath::Max(0.f, ProjectileMovement->InitialSpeed);
+	ProjectileMovement->ProjectileGravityScale = 0.f;
+	ProjectileMovement->bInitialVelocityInLocalSpace = false;
+	ProjectileMovement->Velocity = FlatDirection * MovementSpeed;
+	ProjectileMovement->UpdateComponentVelocity();
+}
+
 void AElysiaProjectile::HandleSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                                  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                                  const FHitResult& SweepResult)

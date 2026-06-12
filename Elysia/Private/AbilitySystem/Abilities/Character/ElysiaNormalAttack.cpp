@@ -153,10 +153,16 @@ void UElysiaNormalAttack::FireProjectileVolley(int32 ArrowsPerVolley, bool bShou
 
 	// 延迟连发真正执行时才读取当前枪口和目标位置，避免角色移动后仍从旧位置生成子弹。
 	const FVector SpawnLocation = ElysiaCharacter->GetWeapon()->GetSocketLocation(FName("TipSocket"));
-	const FVector AimDirection = IsValid(TargetActor)
-		? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal()
-		: ElysiaCharacter->GetActorForwardVector();
-	const FRotator SpawnRotation = AimDirection.Rotation();
+	FVector AimDirection = IsValid(TargetActor)
+		? (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal2D()
+		: ElysiaCharacter->GetActorForwardVector().GetSafeNormal2D();
+	if (AimDirection.IsNearlyZero())
+	{
+		AimDirection = FVector::ForwardVector;
+	}
+
+	// 普攻只取水平面方向，目标和枪口存在高度差时也不产生俯仰角。
+	const FRotator SpawnRotation(0.f, AimDirection.Rotation().Yaw, 0.f);
 	const FVector RightVector = SpawnRotation.RotateVector(FVector::RightVector);
 	const float PairHalfWidth = ArrowsPerVolley > 1 ? EvolvedPairSpacing * 0.5f : 0.f;
 	const TSubclassOf<AElysiaProjectile> ProjectileClassToSpawn = bShouldPenetrate && EnhancedProjectileClass
@@ -198,5 +204,6 @@ void UElysiaNormalAttack::FireProjectileVolley(int32 ArrowsPerVolley, bool bShou
 			static_cast<float>(GetWeaponEffectLevel()),
 			EffectContext);
 		Projectile->FinishSpawning(SpawnTransform);
+		Projectile->SetFlatFlight(AimDirection);
 	}
 }

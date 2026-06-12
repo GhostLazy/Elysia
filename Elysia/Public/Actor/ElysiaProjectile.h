@@ -25,6 +25,7 @@ public:
 	
 	void SetIsPenetrate(bool IsPenetrate) { bPenetrate = IsPenetrate; }
 	void SetMovementSpeed(float MovementSpeed) const;
+	void SetFlatFlight(const FVector& FlightDirection) const;
 
 protected:
 	

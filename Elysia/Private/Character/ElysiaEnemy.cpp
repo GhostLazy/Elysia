@@ -51,6 +51,7 @@ AElysiaEnemy::AElysiaEnemy()
 	AIControllerClass = AElysiaMinionAIController::StaticClass();
 	
 	Tags.Add(FName("Enemy"));
+	Tags.Add(FName("Minion"));
 	Tags.Add(FName("Damageable"));
 }
 

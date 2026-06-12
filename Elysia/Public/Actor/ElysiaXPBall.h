@@ -60,7 +60,14 @@ private:
 
 	UFUNCTION()
 	void OnRep_XPBallLevel();
-	
-	bool bTargetHasSet = false;
+
+	UFUNCTION()
+	void OnRep_AttractionTarget();
+
+	void ConfigureHomingMovement();
+
+	// 只复制吸附目标，各端根据本地角色位置独立模拟追踪移动。
+	UPROPERTY(ReplicatedUsing = OnRep_AttractionTarget)
+	TObjectPtr<AElysiaCharacter> AttractionTarget;
 
 };
